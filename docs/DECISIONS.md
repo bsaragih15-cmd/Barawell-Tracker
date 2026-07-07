@@ -72,3 +72,10 @@ Pipeline/Register/Prioritize/Trajectory tabs removed at the owner's call — the
 **D16 · Adherence layer: stale detection, needs-attention filter, weekly snapshots.**
 Adherence = the tool pushing the team, not just measuring. Three mechanisms: (1) a card is **stale** after 14 days without update (`updated_at`, display-layer only — not business math); (2) **Needs attention** = Red/Amber, overdue milestone, or stale, one click; (3) `coverage_snapshots` stores one `v_coverage` row per ISO week (idempotent upsert on page load, `capture_coverage_snapshot()`), and the hero shows Δ coverage vs last week — the number that creates pressure when it doesn't move. Milestones are now CRUD-able from the drawer so auto-RAG has signal on every in-flight initiative.
 *Reopens if:* a scheduler (n8n/pg_cron) replaces capture-on-load, or the stale threshold needs to be config.
+
+**D17 · UI speaks only Idea / Execute / Done; L1–L5 stays in SQL as the confidence engine.**
+Owner's call (partially reopens D4's *surface*, not its math): gate codes, the L1–L5 rail, and Advance/Regress are gone from the UI. The three states map to canonical stages (Idea→L2 50%, Execute→L4 90%, Done→L5 100%); `stateOf(stage)` collapses any legacy stage for display, and existing L1/L3 rows keep their stage (and confidence) until touched. The stages table and per-stage weighting are unchanged — coverage still hardens value by confidence; the UI just stops asking the team to think in five gates.
+*Reopens if:* the simplified states make committed value too coarse (e.g. everything piles into 90% too easily) — then reintroduce an evidence checklist on the Idea→Execute transition rather than the five gates.
+
+**D18 · Full-list tab alongside the board.**
+The board is the operating surface; an exhaustive sortable list (ID, owner, state, RAG, gross, risk-adj, ICE, last-updated) exists as a second tab for register reviews. Same filter chips apply to both.

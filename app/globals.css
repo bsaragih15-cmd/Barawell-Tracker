@@ -153,6 +153,11 @@ tbody tr:last-child td{border-bottom:none}
 .btn-ghost:hover{color:var(--ink);border-color:var(--ink-3)}
 .btn-accent{font-size:12px;font-weight:600;color:#fff;background:var(--accent);border:1px solid var(--accent);border-radius:8px;padding:8px 16px}
 .btn-accent:hover{background:var(--accent-ink)}
+/* 3-state control (drawer) */
+.state-set{display:flex;gap:6px;margin-bottom:18px}
+.state-btn{flex:1;font-size:11.5px;font-weight:600;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2)}
+.state-btn:hover{border-color:var(--ink-3)}
+.state-btn.on{font-weight:700}
 /* weekly delta */
 .delta{display:block;font-size:11px;font-weight:600;margin-top:5px}
 .delta.up{color:var(--rag-g)}.delta.down{color:var(--rag-r)}.delta.flat{color:var(--ink-3)}
