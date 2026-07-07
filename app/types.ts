@@ -17,6 +17,9 @@ export type ScoredRow = {
   updated_at: string; state_since: string | null;
   note: string | null; next_action: string | null; next_due: string | null;
   kpi_label: string | null; kpi_target: number | null; kpi_actual: number | null; kpi_unit: string | null;
+  kpi_baseline: number | null; kpi_leading: boolean | null;
+  how_it_works: string | null; steps: string[] | null; done_when: string | null;
+  depends_on: string[] | null; blocked_by: string[] | null;
 };
 export type ChangeLog = {
   id: number; entity: string; entity_id: string | null; field: string;
@@ -29,6 +32,7 @@ export type Snapshot = {
 export type Coverage = {
   current_rev: number; target: number; gap: number;
   committed: number; planned: number; pipeline: number; total_ra: number;
+  unblocked: number; blocked: number;
   projected: number; coverage_pct: number; committed_pct: number;
 };
 export type Config = {

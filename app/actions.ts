@@ -130,7 +130,8 @@ const INPUT_COLS = [
   'bucket', 'name', 'description', 'driver', 'base_type', 'direct_rp',
   'uplift', 'coverage', 'build_cost', 'monthly_cost', 'tti', 'conf', 'ease',
   'stage', 'pl_line', 'recurring', 'in_plan', 'owner_id',
-  'kpi_label', 'kpi_target', 'kpi_unit',
+  'kpi_label', 'kpi_target', 'kpi_unit', 'kpi_baseline', 'kpi_leading',
+  'how_it_works', 'steps', 'done_when', 'depends_on',
 ] as const;
 
 function pick(input: Record<string, unknown>) {

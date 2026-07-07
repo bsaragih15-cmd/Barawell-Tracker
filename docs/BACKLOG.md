@@ -64,6 +64,11 @@ Effort: S (<2h) · M (half-day) · L (1–2 days).
 
 ## Done
 
+### [P1·M] Initiative detail: in-app playbook, dependencies/blocked, KPI baseline — 2026-07-07
+- `0008_initiative_detail.sql`: `how_it_works`, `steps[]`, `done_when`, `depends_on[]`, `kpi_baseline`, `kpi_leading`; view derives `blocked_by[]`; `v_coverage` adds `unblocked`/`blocked`. Seeded the authored playbook + full dependency graph across all 39.
+- Drawer shows the playbook (how/steps/done-when) + clickable dependency chips + a blocked banner; mini-cards show ⛔ blocked badges; new "Reachable now · unblocked" hero tile (Rp 47.5M reachable vs Rp 134M blocked behind enablers).
+- KPI now baseline → actual → target with a true % and leading/lagging tag. Add/edit form gained Playbook + KPI-baseline fields. Closes most of backlog #1/#2/#5.
+
 ### [reg] GLP-1 program cluster + adjacent levers added — 2026-07-07
 - `0007_seed_glp1_and_more.sql`: F4 GLP-1 program · F5 subscription/titration · F6 screening · G5 cold-chain (enabler) · G6 regulatory (enabler) · B5 companion bundle · C6 payments · A6 predictive churn. Register 31→39; coverage 54%→63%.
 
