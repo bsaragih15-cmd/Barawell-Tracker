@@ -64,6 +64,12 @@ Effort: S (<2h) · M (half-day) · L (1–2 days).
 
 ## Done
 
+### [P1·M] Adherence pass: single-view board, review filter, stale flags, milestone CRUD, weekly Δ — 2026-07-07
+- Removed all tabs (D15): Execution board is the app. Filter chips replace views — "Needs attention" (RAG≠Green / overdue milestone / stale ≥14d) + per-owner filters.
+- Cards show stale badges and their next dated milestone (red when overdue).
+- Milestones add/delete from the drawer (with due dates) — auto-RAG now feedable everywhere.
+- `0005_weekly_snapshots.sql`: `coverage_snapshots` (1 row/ISO week) + `capture_coverage_snapshot()` upsert called on page load; hero shows Δ coverage pts vs last week. Covers most of the old "Exception-based review view" P2 item.
+
 ### [P1·S] Drag-and-drop + 3-lane Execution board — 2026-07-07
 - Cards drag between the 5 Pipeline stage columns (drop = set stage, absolute).
 - New "Execution" tab: Idea (L1–L2) / Execute (L3–L4) / Done (L5) — a projection of the stage-gates (D14), drag between lanes writes the lane's canonical stage (L2/L4/L5). Lane rollups show count + risk-adj Rp/mo; cards show milestone progress + owner.

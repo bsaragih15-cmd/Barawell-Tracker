@@ -14,6 +14,11 @@ export type ScoredRow = {
   base_rp: number; incr_rev: number; incr_gp: number; ra_rev: number; ra_gp: number;
   net_3mo: number; payback_mo: number | null; impact: number; ice: number;
   quadrant: string; ms_total: number; ms_done: number;
+  updated_at: string;
+};
+export type Snapshot = {
+  week_start: string; captured_at: string; current_rev: number; target: number;
+  committed: number; planned: number; pipeline: number; total_ra: number; coverage_pct: number | null;
 };
 export type Coverage = {
   current_rev: number; target: number; gap: number;
