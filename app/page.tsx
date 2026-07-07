@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase/server';
 import Cockpit from './Cockpit';
-import type { ScoredRow, Coverage, Config, Stage, Milestone, Pic, Snapshot } from './types';
+import type { ScoredRow, Coverage, Config, Stage, Milestone, Pic, Snapshot, ChangeLog } from './types';
 
 export const dynamic = 'force-dynamic'; // always read fresh (mutations revalidate)
 
@@ -9,7 +9,7 @@ export default async function Page() {
   // Refresh this ISO-week's coverage snapshot (idempotent upsert in SQL) so
   // the hero can show Δ vs last week without any scheduler.
   await sb.rpc('capture_coverage_snapshot');
-  const [rows, cov, cfg, stages, miles, pics, snaps] = await Promise.all([
+  const [rows, cov, cfg, stages, miles, pics, snaps, logs] = await Promise.all([
     sb.from('v_initiatives_scored').select('*'),
     sb.from('v_coverage').select('*').single(),
     sb.from('config').select('*').single(),
@@ -17,6 +17,7 @@ export default async function Page() {
     sb.from('milestones').select('*').order('sort'),
     sb.from('pics').select('*').order('name'),
     sb.from('coverage_snapshots').select('*').order('week_start', { ascending: false }).limit(8),
+    sb.from('change_log').select('*').order('at', { ascending: false }).limit(300),
   ]);
 
   if (rows.error) {
@@ -40,6 +41,7 @@ export default async function Page() {
       milestones={(miles.data ?? []) as Milestone[]}
       pics={(pics.data ?? []) as Pic[]}
       snapshots={(snaps.data ?? []) as Snapshot[]}
+      changelog={(logs.data ?? []) as ChangeLog[]}
     />
   );
 }

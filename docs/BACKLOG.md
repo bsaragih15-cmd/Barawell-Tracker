@@ -64,6 +64,12 @@ Effort: S (<2h) · M (half-day) · L (1–2 days).
 
 ## Done
 
+### [P1·M] Card pass: status note, next-action, KPI, age-in-state, activity log — 2026-07-07
+- `0006_card_fields_and_changelog.sql`: card fields (note, next_action/next_due, kpi_label/target/actual/unit, state_since) + `change_log` table; view recreated so fields flow through.
+- Mini-card now shows age-in-state, the status note, next action/milestone, and a milestone progress bar.
+- Drawer: inline "What's next", status note, KPI actual-vs-target with progress (blur-to-save via `saveCardMeta`); an **Activity** feed of the last changes; KPI setup (metric/target/unit) in the add/edit form.
+- Every mutation appends to `change_log` — closes the P1 "Change-log / audit table" item (per-card feed; global view + `who` deferred to Auth).
+
 ### [P1·M] Adherence pass: single-view board, review filter, stale flags, milestone CRUD, weekly Δ — 2026-07-07
 - Removed all tabs (D15): Execution board is the app. Filter chips replace views — "Needs attention" (RAG≠Green / overdue milestone / stale ≥14d) + per-owner filters.
 - Cards show stale badges and their next dated milestone (red when overdue).

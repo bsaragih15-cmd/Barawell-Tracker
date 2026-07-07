@@ -79,3 +79,7 @@ Owner's call (partially reopens D4's *surface*, not its math): gate codes, the L
 
 **D18 · Full-list tab alongside the board.**
 The board is the operating surface; an exhaustive sortable list (ID, owner, state, RAG, gross, risk-adj, ICE, last-updated) exists as a second tab for register reviews. Same filter chips apply to both.
+
+**D19 · The initiative card carries the operating conversation; change_log records every mutation.**
+Card fields added (`0006`): `note` (status), `next_action`/`next_due` (the single next step), `kpi_label`/`kpi_target`/`kpi_actual`/`kpi_unit` (the metric the initiative moves), `state_since` (age-in-state, reset only on state change — distinct from `updated_at`). These are inputs, not scored — the SQL engine ignores them (rule 1). The mini-card surfaces note + next + progress + age; the drawer edits them inline (blur-to-save via `saveCardMeta`). `change_log` appends on every action (state/RAG/owner/status/milestone/config/meta/create/edit); the drawer shows the last 12 per initiative. `who` stays null until Auth (D3). "Done" still means state=Done; the KPI target/actual is the honesty check that the metric actually moved.
+*Reopens if:* the log needs attribution (needs Auth) or a full-history audit view beyond the per-card feed.
