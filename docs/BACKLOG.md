@@ -32,10 +32,6 @@ Effort: S (<2h) · M (half-day) · L (1–2 days).
 - Rewire the Trajectory view to read the view instead of the client-side derivation.
 - **Done when:** trajectory reflects stored phasing and updates when phasing edits.
 
-### [P1·S] Add-initiative + edit-initiative forms
-- CRUD on `initiatives` (next-free-ID helper per bucket per rule 3). Inputs only — scores compute in the view.
-- **Done when:** a new initiative can be added from the UI and scores immediately.
-
 ### [P1·S] Change-log / audit table
 - `change_log(id, entity, entity_id, field, old, new, who, at)`; write from actions. Governance requirement — nothing gets silently altered.
 - **Done when:** stage/RAG/config changes append a log row; a simple log view exists.
@@ -67,6 +63,10 @@ Effort: S (<2h) · M (half-day) · L (1–2 days).
 ---
 
 ## Done
+
+### [P1·S] Add / edit / kill initiative + owners — 2026-07-07
+- `0004_owners_and_register_lifecycle.sql`: formalises the ad-hoc live `pics` table + `initiatives.owner_id` FK, adds a `status` ('Active'/'Killed') column, and rebuilds `v_initiatives_scored` (now joins `owner_name`/`owner_is_lead`) and `v_coverage` (counts `status='Active'` only, so killing a lever drops its value from the bridge).
+- UI: "+ New initiative" modal (all scoring inputs, ID auto-assigned per bucket per rule 3 — scores compute in the view, no math in the client); "Edit inputs" from the drawer reuses the same form; owner assignment (PIC chips) in the drawer + owner avatars on pipeline/board cards and a Register column; kill/restore with a "show N killed" toggle. Verified: kill A2 → coverage 54%→47%, restore → 54%.
 
 ### [P0·S] `npm run build` passes clean — 2026-07-07
 - Fixed a type error in the Register sort comparator (`(string & number)` cast collapsed to `never`, breaking `localeCompare`). Build exits 0.

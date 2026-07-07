@@ -1,17 +1,18 @@
 import { supabaseAdmin } from '@/lib/supabase/server';
 import Cockpit from './Cockpit';
-import type { ScoredRow, Coverage, Config, Stage, Milestone } from './types';
+import type { ScoredRow, Coverage, Config, Stage, Milestone, Pic } from './types';
 
 export const dynamic = 'force-dynamic'; // always read fresh (mutations revalidate)
 
 export default async function Page() {
   const sb = supabaseAdmin();
-  const [rows, cov, cfg, stages, miles] = await Promise.all([
+  const [rows, cov, cfg, stages, miles, pics] = await Promise.all([
     sb.from('v_initiatives_scored').select('*'),
     sb.from('v_coverage').select('*').single(),
     sb.from('config').select('*').single(),
     sb.from('stages').select('*').order('n'),
     sb.from('milestones').select('*').order('sort'),
+    sb.from('pics').select('*').order('name'),
   ]);
 
   if (rows.error) {
@@ -33,6 +34,7 @@ export default async function Page() {
       config={cfg.data as Config}
       stages={(stages.data ?? []) as Stage[]}
       milestones={(miles.data ?? []) as Milestone[]}
+      pics={(pics.data ?? []) as Pic[]}
     />
   );
 }

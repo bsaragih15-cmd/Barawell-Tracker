@@ -52,3 +52,11 @@ Milestones + manual RAG + a frontend-derived trajectory ramp are enough to run r
 **D11 · Config edited via a UI modal, not just raw SQL.**
 The `updateConfig` action existed but had no surface; assumptions (D8) change often as real data lands, so a founder-facing "Assumptions" modal now writes `config` and lets the view re-price everything. No math moved to the client — the form only writes inputs.
 *Reopens if:* config becomes multi-row/versioned (per-review snapshots), which would need a different editor.
+
+**D12 · Register CRUD from the UI; kill via a `status` column, never delete.**
+The register is meant to grow, so add/edit initiatives ship as a founder-facing modal (`0004`). The form writes only input columns — every score still computes in `v_initiatives_scored` (rule 1). IDs are auto-assigned as the next free number in the chosen bucket (rule 3, stable IDs). Removal is a `status='Killed'` flag, not a `delete`: the ID survives, the row stays in the scored view (so it can be listed/restored), and it drops out of `v_coverage`. This honours "kill via status" and lays the groundwork for the deferred attrition/leakage rollup (P2).
+*Reopens if:* leakage tracking needs a richer lifecycle (`Descoped`, kill reason, gate-at-death) — extend the `status` enum + a leakage view.
+
+**D13 · Owners (PICs) as a lookup table, not free text.**
+`initiatives.owner` (free text) stays for legacy, but accountability now runs through a `pics` table + `owner_id` FK, joined into the scored view as `owner_name`/`owner_is_lead`. A lookup keeps names consistent, powers avatars, and sets up "my initiatives" filtering and (eventually) per-owner RLS once Auth lands (D3).
+*Reopens if:* owners need roles/capacity or map to real auth users — join `pics` to Supabase Auth users.

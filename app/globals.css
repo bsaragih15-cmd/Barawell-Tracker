@@ -153,4 +153,42 @@ tbody tr:last-child td{border-bottom:none}
 .btn-ghost:hover{color:var(--ink);border-color:var(--ink-3)}
 .btn-accent{font-size:12px;font-weight:600;color:#fff;background:var(--accent);border:1px solid var(--accent);border-radius:8px;padding:8px 16px}
 .btn-accent:hover{background:var(--accent-ink)}
-@media(max-width:900px){.tiles{grid-template-columns:repeat(2,1fr)}.pipe-board,.board{grid-template-columns:1fr}.name{max-width:none}.fgrid{grid-template-columns:1fr}}
+/* new-initiative button */
+.new-btn{font-size:11.5px;font-weight:600;color:#fff;background:var(--accent);border:1px solid var(--accent);border-radius:8px;padding:6px 12px}
+.new-btn:hover{background:var(--accent-ink)}
+/* owner avatars */
+.av{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;font-weight:700;flex:none;letter-spacing:-.02em}
+.pcfoot-r{display:inline-flex;align-items:center;gap:7px}
+.ownercell{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-2)}
+/* killed state */
+.killtag{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--rag-r);background:var(--rag-rs);padding:1px 6px;border-radius:5px;margin-left:7px;vertical-align:middle}
+.pcard.killed{opacity:.55;filter:grayscale(.4)}
+.killed-row td{opacity:.55}
+.killtoggle{font-size:11px;font-weight:600;color:var(--ink-3);border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:3px 9px;margin-left:10px}
+.killtoggle:hover{color:var(--ink);border-color:var(--ink-3)}
+/* drawer: owner picker + edit link + kill zone */
+.edit-link{position:absolute;top:20px;right:52px;font-size:11px;font-weight:600;color:var(--accent);padding:5px 8px;border-radius:6px}
+.edit-link:hover{background:var(--accent-soft)}
+.owner-set{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
+.owner-btn{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:500;padding:5px 10px 5px 6px;border-radius:20px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2)}
+.owner-btn:hover{border-color:var(--ink-3)}
+.owner-btn.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
+.leadtag{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--en);background:var(--en-s);padding:1px 5px;border-radius:4px}
+.danger{border-top:1px solid var(--line);margin-top:6px;padding-top:16px}
+.kill-btn{font-size:11.5px;font-weight:600;color:var(--rag-r);border:1px solid var(--rag-rs);background:var(--rag-rs);border-radius:8px;padding:8px 14px}
+.kill-btn:hover{background:var(--rag-r);color:#fff;border-color:var(--rag-r)}
+.restore-btn{font-size:11.5px;font-weight:600;color:var(--accent);border:1px solid #CDE7DD;background:var(--accent-soft);border-radius:8px;padding:8px 14px}
+.restore-btn:hover{background:var(--accent);color:#fff}
+.danger-note{font-size:10.5px;color:var(--ink-3);line-height:1.5;margin-top:8px}
+/* initiative modal extras */
+.modal.wide{width:640px}
+.fsec{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line-2)}
+.fsec:first-of-type{margin-top:4px}
+.field.span2{grid-column:1 / -1}
+.finput select{flex:1;min-width:0;border:none;background:none;outline:none;padding:8px 10px;font-size:13px;color:var(--ink);appearance:none;cursor:pointer}
+.ftext{border:1px solid var(--line);border-radius:8px;background:#FBFCFD;outline:none;padding:8px 10px;font-size:12.5px;font-family:inherit;color:var(--ink);resize:vertical;line-height:1.5}
+.ftext:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.field.chk{flex-direction:row;align-items:center;gap:8px;padding:6px 0}
+.field.chk input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+.btn-accent:disabled{opacity:.45;cursor:not-allowed;background:var(--ink-3);border-color:var(--ink-3)}
+@media(max-width:900px){.tiles{grid-template-columns:repeat(2,1fr)}.pipe-board,.board{grid-template-columns:1fr}.name{max-width:none}.fgrid{grid-template-columns:1fr}.field.span2{grid-column:auto}}
