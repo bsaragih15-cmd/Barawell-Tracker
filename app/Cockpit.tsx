@@ -3,7 +3,7 @@
 import { useState, useTransition, useMemo } from 'react';
 import type { MouseEvent as ReactMouseEvent, ChangeEvent as ReactChangeEvent } from 'react';
 import type { ScoredRow, Coverage, Config, Stage, Milestone } from './types';
-import { moveStage, setRag, toggleMilestone } from './actions';
+import { moveStage, setRag, toggleMilestone, updateConfig } from './actions';
 
 const rp = (v: number) => {
   const a = Math.abs(v); let s: string;
@@ -24,10 +24,12 @@ export default function Cockpit({ rows, coverage, config, stages, milestones }:
   const [openId, setOpenId] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<keyof ScoredRow>('ice');
   const [sortDir, setSortDir] = useState(-1);
+  const [cfgOpen, setCfgOpen] = useState(false);
   const [pending, start] = useTransition();
 
   const open = rows.find(r => r.id === openId) || null;
   const openMs = milestones.filter(m => m.initiative_id === openId);
+  const today = new Date().toISOString().slice(0, 10);
 
   const T = coverage.target, cur = coverage.current_rev, gap = coverage.gap;
   const seg = (v: number) => `${Math.max(0, (v / T) * 100)}%`;
@@ -71,7 +73,10 @@ export default function Cockpit({ rows, coverage, config, stages, milestones }:
     <div className="wrap">
       <div className="topbar">
         <div className="brand"><h1>Barawell</h1><span className="sub">Value-Capture Pipeline · Q3 recovery</span></div>
-        <div className="live"><span className="dot" />{pending ? 'saving…' : 'live · Supabase'}</div>
+        <div className="topright">
+          <button className="assump-btn" onClick={() => setCfgOpen(true)}>Assumptions</button>
+          <div className="live"><span className="dot" />{pending ? 'saving…' : 'live · Supabase'}</div>
+        </div>
       </div>
 
       {/* HERO */}
@@ -128,7 +133,7 @@ export default function Cockpit({ rows, coverage, config, stages, milestones }:
                 <div className="pcol-sum mono" style={{ color: `var(${STCOLOR(st.n)})` }}>{rp(sum)}/mo</div>
                 {rs.map(r => (
                   <div className="pcard" key={r.id} style={{ borderTopColor: `var(${STCOLOR(st.n)})` }} onClick={() => setOpenId(r.id)}>
-                    <div className="pcid mono">{r.id}{r.rag && <span className="rag" style={{ background: `var(${RAGV[r.rag]})`, marginLeft: 6 }} />}</div>
+                    <div className="pcid mono">{r.id}{r.rag_effective && <span className="rag" title={r.rag_override ? 'RAG · manual' : 'RAG · auto from milestones'} style={{ background: `var(${RAGV[r.rag_effective]})`, marginLeft: 6 }} />}</div>
                     <div className="pcname">{r.name}</div>
                     <div className="pcfoot">
                       <span className="mono">{r.ra_rev > 0 ? rp(r.ra_rev) : r.pl_line === 'Enabler' ? 'enabler' : '—'}</span>
@@ -159,7 +164,7 @@ export default function Cockpit({ rows, coverage, config, stages, milestones }:
                   <td className="name">{r.name}<div className="drv">{r.driver}</div></td>
                   <td>{stgChip(r)}</td>
                   <td className="pl">{r.pl_line}</td>
-                  <td>{r.rag ? <span className="rag" style={{ background: `var(${RAGV[r.rag]})` }} /> : <span style={{ color: 'var(--ink-3)' }}>—</span>}</td>
+                  <td>{r.rag_effective ? <span className="rag" title={r.rag_override ? 'manual' : 'auto'} style={{ background: `var(${RAGV[r.rag_effective]})`, opacity: r.rag_override ? 1 : 0.75 }} /> : <span style={{ color: 'var(--ink-3)' }}>—</span>}</td>
                   <td className="num mono">{r.incr_rev > 0 ? rp(r.incr_rev) : '—'}</td>
                   <td className="num mono" style={{ fontWeight: 600, color: 'var(--accent-ink)' }}>{r.ra_rev > 0 ? rp(r.ra_rev) : '—'}</td>
                   <td className="num mono" style={{ fontWeight: 600 }}>{r.ice}</td>
@@ -204,6 +209,15 @@ export default function Cockpit({ rows, coverage, config, stages, milestones }:
         </div>
       )}
 
+      {/* ASSUMPTIONS MODAL */}
+      {cfgOpen && (
+        <ConfigModal
+          config={config}
+          onClose={() => setCfgOpen(false)}
+          save={(patch) => act(() => updateConfig(patch))}
+        />
+      )}
+
       {/* DRAWER */}
       <div className={'scrim' + (open ? ' on' : '')} onClick={() => setOpenId(null)} />
       <div className={'drawer' + (open ? ' on' : '')}>
@@ -231,22 +245,32 @@ export default function Cockpit({ rows, coverage, config, stages, milestones }:
               <p className="section-t">Delivery status (RAG)</p>
               <div className="rag-set">
                 {(['Green', 'Amber', 'Red'] as const).map(g => (
-                  <button key={g} className={'rag-btn' + (open.rag === g ? ' on-' + g[0].toLowerCase() : '')}
+                  <button key={g} className={'rag-btn' + (open.rag_effective === g ? ' on-' + g[0].toLowerCase() : '')}
                     onClick={() => act(() => setRag(open.id, open.rag === g ? null : g))}>{g}</button>
                 ))}
+              </div>
+              <div className="rag-src">
+                {open.rag_override
+                  ? <>Manual override · <button className="linkbtn" onClick={() => act(() => setRag(open.id, null))}>use auto (milestones)</button></>
+                  : open.rag_auto
+                    ? <>Auto from milestones — set a value to override</>
+                    : <>No milestones yet — add milestones or set a value manually</>}
               </div>
 
               {openMs.length > 0 && (
                 <>
                   <p className="section-t">Milestones ({open.ms_done}/{open.ms_total})</p>
                   <div className="msbar"><i style={{ width: `${open.ms_total ? (open.ms_done / open.ms_total) * 100 : 0}%` }} /></div>
-                  {openMs.map(m => (
-                    <label className={'ms' + (m.done ? ' done' : '')} key={m.id}>
-                      <input type="checkbox" checked={m.done} onChange={(e: ReactChangeEvent<HTMLInputElement>) => act(() => toggleMilestone(m.id, e.target.checked))} />
-                      <span>{m.title}</span>
-                      {m.due_date && <span className="due mono">{m.due_date}</span>}
-                    </label>
-                  ))}
+                  {openMs.map(m => {
+                    const overdue = !m.done && m.due_date != null && m.due_date < today;
+                    return (
+                      <label className={'ms' + (m.done ? ' done' : '') + (overdue ? ' over' : '')} key={m.id}>
+                        <input type="checkbox" checked={m.done} onChange={(e: ReactChangeEvent<HTMLInputElement>) => act(() => toggleMilestone(m.id, e.target.checked))} />
+                        <span>{m.title}</span>
+                        {m.due_date && <span className="due mono">{overdue ? 'overdue · ' : ''}{m.due_date}</span>}
+                      </label>
+                    );
+                  })}
                   <div style={{ height: 16 }} />
                 </>
               )}
@@ -273,6 +297,82 @@ export default function Cockpit({ rows, coverage, config, stages, milestones }:
         )}
       </div>
     </div>
+  );
+}
+
+function ConfigModal({ config, onClose, save }:
+  { config: Config; onClose: () => void; save: (patch: Record<string, number>) => void }) {
+  const [f, setF] = useState({
+    current_rev: config.current_rev / 1e6,
+    target: config.target / 1e6,
+    toko_lost: config.toko_lost / 1e6,
+    margin: config.margin * 100,
+    repeat_share: config.repeat_share * 100,
+    dtc_share: config.dtc_share * 100,
+    haircut: config.haircut * 100,
+  });
+  const set = (k: keyof typeof f) => (e: ReactChangeEvent<HTMLInputElement>) =>
+    setF(s => ({ ...s, [k]: e.target.valueAsNumber }));
+  const val = (n: number) => (Number.isNaN(n) ? '' : n);
+  const submit = () => {
+    save({
+      current_rev: Math.round(f.current_rev * 1e6),
+      target: Math.round(f.target * 1e6),
+      toko_lost: Math.round(f.toko_lost * 1e6),
+      margin: f.margin / 100,
+      repeat_share: f.repeat_share / 100,
+      dtc_share: f.dtc_share / 100,
+      haircut: f.haircut / 100,
+    });
+    onClose();
+  };
+  const rpFields = [
+    ['current_rev', 'Current run-rate', 'Rp M / mo'],
+    ['target', 'Target', 'Rp M / mo'],
+    ['toko_lost', 'Tokopedia lost pool', 'Rp M / mo'],
+  ] as const;
+  const pctFields = [
+    ['margin', 'Gross margin', '%'],
+    ['repeat_share', 'Repeat share', '%'],
+    ['dtc_share', 'DTC share', '%'],
+    ['haircut', 'Haircut', '%'],
+  ] as const;
+  return (
+    <>
+      <div className="scrim on" onClick={onClose} />
+      <div className="modal" role="dialog" aria-modal="true">
+        <div className="modal-h">
+          <div>
+            <div className="eyebrow">Model assumptions</div>
+            <h3>Re-price the whole portfolio</h3>
+          </div>
+          <button className="x" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-b">
+          <p className="modal-note">
+            Every initiative re-scores in <span className="mono">v_initiatives_scored</span> the moment you save — the app holds no formulas.
+          </p>
+          <div className="fgrid">
+            {rpFields.map(([k, l, u]) => (
+              <label className="field" key={k}>
+                <span className="flbl">{l}</span>
+                <div className="finput"><input type="number" className="mono" value={val(f[k])} onChange={set(k)} /><span className="funit">{u}</span></div>
+              </label>
+            ))}
+            {pctFields.map(([k, l, u]) => (
+              <label className="field" key={k}>
+                <span className="flbl">{l}</span>
+                <div className="finput"><input type="number" step="1" className="mono" value={val(f[k])} onChange={set(k)} /><span className="funit">{u}</span></div>
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="modal-f">
+          <button className="btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn-accent" onClick={submit}>Save &amp; re-price</button>
+        </div>
+      </div>
+    </>
   );
 }
 

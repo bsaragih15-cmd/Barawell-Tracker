@@ -6,6 +6,9 @@ export type ScoredRow = {
   stage: number; stage_code: string; stage_name: string; stage_conf: number;
   pl_line: 'Revenue' | 'Gross margin' | 'Enabler'; recurring: boolean;
   owner: string | null; rag: 'Green' | 'Amber' | 'Red' | null; in_plan: boolean;
+  rag_override: boolean;
+  rag_auto: 'Green' | 'Amber' | 'Red' | null;
+  rag_effective: 'Green' | 'Amber' | 'Red' | null;
   base_rp: number; incr_rev: number; incr_gp: number; ra_rev: number; ra_gp: number;
   net_3mo: number; payback_mo: number | null; impact: number; ice: number;
   quadrant: string; ms_total: number; ms_done: number;

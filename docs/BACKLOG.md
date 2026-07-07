@@ -27,20 +27,10 @@ Effort: S (<2h) · M (half-day) · L (1–2 days).
 
 ## P1 — make it a real in-flight tracker
 
-### [P1·M] Milestone-driven auto-RAG
-- Add a rule: RAG derives from milestone status unless manually overridden. Red if any milestone past `due_date` and not done; Amber if progress <50% and stage ≥ L4; Green otherwise. Keep a manual override flag.
-- Prefer computing in a view (`v_initiatives_scored` or a new `v_initiative_rag`) over app code (rule D2).
-- **Done when:** overdue milestones surface Red automatically; manual override still wins.
-
 ### [P1·M] Stored value phasing (replace the frontend ramp)
 - New table `phasing(initiative_id, month_index, value)` or a `ramp_months` + `start_month` per initiative. Sum into a `v_trajectory` view.
 - Rewire the Trajectory view to read the view instead of the client-side derivation.
 - **Done when:** trajectory reflects stored phasing and updates when phasing edits.
-
-### [P1·M] Config-editing UI
-- A form (drawer or modal) that writes `config` via `updateConfig` (action already exists). Fields: current_rev, target, margin, repeat_share, dtc_share, toko_lost, haircut.
-- Recompute cascades automatically (it's all in the view).
-- **Done when:** editing an assumption re-prices the whole portfolio live.
 
 ### [P1·S] Add-initiative + edit-initiative forms
 - CRUD on `initiatives` (next-free-ID helper per bucket per rule 3). Inputs only — scores compute in the view.
@@ -77,4 +67,12 @@ Effort: S (<2h) · M (half-day) · L (1–2 days).
 ---
 
 ## Done
-_(move completed items here with a date)_
+
+### [P0·S] `npm run build` passes clean — 2026-07-07
+- Fixed a type error in the Register sort comparator (`(string & number)` cast collapsed to `never`, breaking `localeCompare`). Build exits 0.
+
+### [P1·M] Milestone-driven auto-RAG — 2026-07-07
+- `0002_auto_rag.sql`: added `initiatives.rag_override`; `v_initiatives_scored` now computes `rag_auto` (Red = any overdue open milestone; Amber = <50% progress & stage ≥ L4; Green = has milestones, else null) and `rag_effective` (`rag_override ? rag : rag_auto`). Frontend reads `rag_effective`; the drawer shows auto-vs-manual and a "use auto" reset; overdue milestones render red. Rule D2 honoured — logic is in SQL, not app code.
+
+### [P1·M] Config-editing UI — 2026-07-07
+- "Assumptions" modal (topbar) edits all seven `config` fields via the existing `updateConfig` action; Rp fields entered in millions, shares/margin/haircut as %. Save re-prices the whole portfolio through the view. Deferred: `haircut` is stored but not yet consumed by a view (the In-Plan overlap rollup, D6, isn't built).
