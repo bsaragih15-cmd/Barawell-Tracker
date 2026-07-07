@@ -2,8 +2,8 @@
 
 import { useState, useTransition, useMemo } from 'react';
 import type { ChangeEvent as ReactChangeEvent, DragEvent as ReactDragEvent } from 'react';
-import type { ScoredRow, Coverage, Config, Stage, Milestone, Pic, Snapshot } from './types';
-import { setStage, setRag, toggleMilestone, addMilestone, deleteMilestone, updateConfig, createInitiative, updateInitiative, setOwner, setStatus } from './actions';
+import type { ScoredRow, Coverage, Config, Stage, Milestone, Pic, Snapshot, ChangeLog } from './types';
+import { setStage, setRag, toggleMilestone, addMilestone, deleteMilestone, updateConfig, createInitiative, updateInitiative, setOwner, setStatus, saveCardMeta } from './actions';
 
 const rp = (v: number) => {
   const a = Math.abs(v); let s: string;
@@ -38,8 +38,8 @@ function Avatar({ name, ownerId, size = 20 }: { name: string; ownerId: string; s
   );
 }
 
-export default function Cockpit({ rows: allRows, coverage, config, stages, milestones, pics, snapshots }:
-  { rows: ScoredRow[]; coverage: Coverage; config: Config; stages: Stage[]; milestones: Milestone[]; pics: Pic[]; snapshots: Snapshot[]; }) {
+export default function Cockpit({ rows: allRows, coverage, config, stages, milestones, pics, snapshots, changelog }:
+  { rows: ScoredRow[]; coverage: Coverage; config: Config; stages: Stage[]; milestones: Milestone[]; pics: Pic[]; snapshots: Snapshot[]; changelog: ChangeLog[]; }) {
 
   const [view, setView] = useState<'board' | 'list'>('board');
   const [sortKey, setSortKey] = useState<keyof ScoredRow>('ra_rev');
@@ -56,6 +56,13 @@ export default function Cockpit({ rows: allRows, coverage, config, stages, miles
 
   const today = new Date().toISOString().slice(0, 10);
   const daysSince = (iso: string) => Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  const ago = (iso: string) => {
+    const d = daysSince(iso);
+    if (d <= 0) { const h = Math.floor((Date.now() - new Date(iso).getTime()) / 3.6e6); return h <= 0 ? 'just now' : `${h}h ago`; }
+    if (d < 7) return `${d}d ago`;
+    if (d < 30) return `${Math.floor(d / 7)}w ago`;
+    return `${Math.floor(d / 30)}mo ago`;
+  };
 
   // ---- adherence signals (display-layer only; scoring stays in SQL) ----
   const overdueIds = useMemo(() => {
@@ -206,21 +213,27 @@ export default function Cockpit({ rows: allRows, coverage, config, stages, miles
               {rs.map(r => {
                 const nextMs = milestones.filter(m => m.initiative_id === r.id && !m.done && m.due_date).sort((a, b) => (a.due_date! < b.due_date! ? -1 : 1))[0];
                 const stale = isStale(r);
+                const age = r.state_since ? daysSince(r.state_since) : null;
+                const nextLine = r.next_action ? { text: r.next_action, due: r.next_due } : nextMs ? { text: nextMs.title, due: nextMs.due_date } : null;
+                const pct = r.ms_total ? Math.round((r.ms_done / r.ms_total) * 100) : null;
                 return (
                   <div className={'pcard' + (r.status === 'Killed' ? ' killed' : '') + (dragId === r.id ? ' dragging' : '')} key={r.id}
                     style={{ borderTopColor: `var(${STCOLOR(r.stage)})` }} onClick={() => setOpenId(r.id)} {...dragProps(r)}>
                     <div className="pcid mono">
                       {r.id}
                       {r.rag_effective && <span className="rag" style={{ background: `var(${RAGV[r.rag_effective]})`, marginLeft: 6 }} />}
+                      {age != null && lane.key !== 'idea' && <span className="pcage" title={`In ${lane.title} ${age} days`}>{lane.title.toLowerCase()} {age}d</span>}
                       {stale && <span className="staletag" title={`No update in ${daysSince(r.updated_at)} days`}>stale {daysSince(r.updated_at)}d</span>}
                       {r.status === 'Killed' && <span className="killtag">killed</span>}
                     </div>
                     <div className="pcname">{r.name}</div>
-                    {nextMs && (
-                      <div className={'pcnext mono' + (nextMs.due_date! < today ? ' over' : '')}>
-                        {nextMs.due_date! < today ? 'OVERDUE · ' : 'next · '}{nextMs.title.length > 34 ? nextMs.title.slice(0, 34) + '…' : nextMs.title} · {nextMs.due_date}
+                    {r.note && <div className="pcnote">“{r.note.length > 70 ? r.note.slice(0, 70) + '…' : r.note}”</div>}
+                    {nextLine && (
+                      <div className={'pcnext mono' + (nextLine.due && nextLine.due < today ? ' over' : '')}>
+                        {nextLine.due && nextLine.due < today ? 'OVERDUE · ' : 'next · '}{nextLine.text.length > 32 ? nextLine.text.slice(0, 32) + '…' : nextLine.text}{nextLine.due ? ' · ' + nextLine.due : ''}
                       </div>
                     )}
+                    {pct != null && <div className="pcprog"><i style={{ width: pct + '%', background: `var(${STCOLOR(r.stage)})` }} /></div>}
                     <div className="pcfoot">
                       <span className="mono">{r.ra_rev > 0 ? rp(r.ra_rev) : r.pl_line === 'Enabler' ? 'enabler' : '—'}</span>
                       <span className="pcfoot-r">
@@ -316,6 +329,9 @@ export default function Cockpit({ rows: allRows, coverage, config, stages, miles
                   </button>
                 ))}
               </div>
+              {open.state_since && <div className="state-age">in {stateOf(open.stage)} for {daysSince(open.state_since)} days · updated {ago(open.updated_at)}</div>}
+
+              <CardStatus key={open.id} row={open} save={(patch) => act(() => saveCardMeta(open.id, patch))} />
 
               <p className="section-t">Delivery status (RAG)</p>
               <div className="rag-set">
@@ -365,6 +381,18 @@ export default function Cockpit({ rows: allRows, coverage, config, stages, miles
                 <div className="crow"><span className="cl">Payback</span><span className="cv mono">{open.payback_mo ? open.payback_mo.toFixed(1) + ' months' : 'n/a'}</span></div>
               </div>
 
+              <p className="section-t">Activity</p>
+              <div className="activity">
+                {changelog.filter(l => l.entity_id === open.id).slice(0, 12).map(l => (
+                  <div className="act-row" key={l.id}>
+                    <span className="act-dot" />
+                    <span className="act-body"><b>{l.field}</b>{l.old_val && l.new_val ? <> · {l.old_val} → {l.new_val}</> : l.new_val ? <> · {l.new_val}</> : null}</span>
+                    <span className="act-at mono">{ago(l.at)}</span>
+                  </div>
+                ))}
+                {changelog.filter(l => l.entity_id === open.id).length === 0 && <div className="act-empty">No changes logged yet.</div>}
+              </div>
+
               <div className="danger">
                 {open.status === 'Active'
                   ? <button className="kill-btn" onClick={() => act(() => setStatus(open.id, 'Killed'))}>Kill initiative</button>
@@ -393,6 +421,53 @@ export default function Cockpit({ rows: allRows, coverage, config, stages, miles
           })}
         />
       )}
+    </div>
+  );
+}
+
+function CardStatus({ row, save }: { row: ScoredRow; save: (patch: Record<string, unknown>) => void }) {
+  const [nextAction, setNextAction] = useState(row.next_action ?? '');
+  const [nextDue, setNextDue] = useState(row.next_due ?? '');
+  const [note, setNote] = useState(row.note ?? '');
+  const [actual, setActual] = useState<string>(row.kpi_actual != null ? String(row.kpi_actual) : '');
+
+  const nextDirty = nextAction !== (row.next_action ?? '') || nextDue !== (row.next_due ?? '');
+  const noteDirty = note !== (row.note ?? '');
+  const actualDirty = actual !== (row.kpi_actual != null ? String(row.kpi_actual) : '');
+
+  const saveNext = () => { if (nextDirty) save({ next_action: nextAction.trim() || null, next_due: nextDue || null }); };
+  const saveNote = () => { if (noteDirty) save({ note: note.trim() || null }); };
+  const saveActual = () => { if (actualDirty) save({ kpi_actual: actual === '' ? null : Number(actual) }); };
+
+  const pct = row.kpi_target ? Math.max(0, Math.min(100, Math.round(((Number(actual) || 0) / row.kpi_target) * 100))) : null;
+
+  return (
+    <div className="cardstatus">
+      <p className="section-t">What&apos;s next</p>
+      <div className="next-row">
+        <input className="next-t" placeholder="The single next action…" value={nextAction}
+          onChange={e => setNextAction(e.target.value)} onBlur={saveNext}
+          onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
+        <input className="next-d mono" type="date" value={nextDue} onChange={e => setNextDue(e.target.value)} onBlur={saveNext} />
+      </div>
+
+      <p className="section-t">Status note</p>
+      <textarea className="note-t" rows={2} placeholder="Where this stands this week…" value={note}
+        onChange={e => setNote(e.target.value)} onBlur={saveNote} />
+
+      {row.kpi_label ? (
+        <>
+          <p className="section-t">KPI · {row.kpi_label}</p>
+          <div className="kpi-row">
+            <input className="kpi-a mono" type="number" value={actual} placeholder="actual"
+              onChange={e => setActual(e.target.value)} onBlur={saveActual} />
+            <span className="kpi-unit">{row.kpi_unit}</span>
+            <span className="kpi-sep">of target</span>
+            <span className="kpi-tgt mono">{row.kpi_target ?? '—'}{row.kpi_unit}</span>
+          </div>
+          {pct != null && <div className="kpi-bar"><i style={{ width: pct + '%' }} /></div>}
+        </>
+      ) : null}
     </div>
   );
 }
@@ -521,6 +596,9 @@ function InitiativeModal({ mode, row, buckets, pics, onClose, save }: {
     recurring: row?.recurring ?? true,
     in_plan: row?.in_plan ?? false,
     owner_id: row?.owner_id ?? '',
+    kpi_label: row?.kpi_label ?? '',
+    kpi_target: row?.kpi_target ?? ('' as number | ''),
+    kpi_unit: row?.kpi_unit ?? '',
   });
   const upd = (k: keyof typeof f, v: unknown) => setF(s => ({ ...s, [k]: v }));
   const num = (e: ReactChangeEvent<HTMLInputElement>) => e.target.valueAsNumber;
@@ -541,6 +619,9 @@ function InitiativeModal({ mode, row, buckets, pics, onClose, save }: {
       tti: f.tti || null, conf: f.conf, ease: f.ease, stage: f.stage,
       pl_line: f.pl_line, recurring: f.recurring, in_plan: f.in_plan,
       owner_id: f.owner_id || null,
+      kpi_label: f.kpi_label.trim() || null,
+      kpi_target: f.kpi_target === '' ? null : Number(f.kpi_target),
+      kpi_unit: f.kpi_unit.trim() || null,
     });
     onClose();
   };
@@ -675,6 +756,22 @@ function InitiativeModal({ mode, row, buckets, pics, onClose, save }: {
             <label className="field chk">
               <input type="checkbox" checked={f.in_plan} onChange={e => upd('in_plan', e.target.checked)} />
               <span className="flbl">In selected plan</span>
+            </label>
+          </div>
+
+          <div className="fsec">Tracking KPI <span className="fsec-note">the metric this initiative moves · optional</span></div>
+          <div className="fgrid">
+            <label className="field span2">
+              <span className="flbl">Metric</span>
+              <div className="finput"><input value={f.kpi_label} onChange={e => upd('kpi_label', e.target.value)} placeholder="e.g. Repeat rate, AOV, WA conversion" /></div>
+            </label>
+            <label className="field">
+              <span className="flbl">Target</span>
+              <div className="finput"><input type="number" className="mono" value={f.kpi_target === '' ? '' : f.kpi_target} onChange={e => upd('kpi_target', Number.isNaN(e.target.valueAsNumber) ? '' : e.target.valueAsNumber)} /></div>
+            </label>
+            <label className="field">
+              <span className="flbl">Unit</span>
+              <div className="finput"><input value={f.kpi_unit} onChange={e => upd('kpi_unit', e.target.value)} placeholder="% · Rp · orders" /></div>
             </label>
           </div>
         </div>

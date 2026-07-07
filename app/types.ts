@@ -14,7 +14,13 @@ export type ScoredRow = {
   base_rp: number; incr_rev: number; incr_gp: number; ra_rev: number; ra_gp: number;
   net_3mo: number; payback_mo: number | null; impact: number; ice: number;
   quadrant: string; ms_total: number; ms_done: number;
-  updated_at: string;
+  updated_at: string; state_since: string | null;
+  note: string | null; next_action: string | null; next_due: string | null;
+  kpi_label: string | null; kpi_target: number | null; kpi_actual: number | null; kpi_unit: string | null;
+};
+export type ChangeLog = {
+  id: number; entity: string; entity_id: string | null; field: string;
+  old_val: string | null; new_val: string | null; who: string | null; at: string;
 };
 export type Snapshot = {
   week_start: string; captured_at: string; current_rev: number; target: number;
