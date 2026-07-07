@@ -75,6 +75,9 @@ export default function Cockpit({ rows: allRows, coverage, config, stages, miles
     r.status === 'Active' && r.stage < 5 &&
     (r.rag_effective === 'Red' || r.rag_effective === 'Amber' || overdueIds.has(r.id) || isStale(r));
 
+  const nameById = useMemo(() => Object.fromEntries(allRows.map(r => [r.id, r.name])), [allRows]);
+  const isBlocked = (r: ScoredRow) => (r.blocked_by?.length ?? 0) > 0;
+
   const killedCount = allRows.filter(r => r.status === 'Killed').length;
   const attentionCount = allRows.filter(needsAttention).length;
   const rows = allRows
@@ -171,6 +174,7 @@ export default function Cockpit({ rows: allRows, coverage, config, stages, miles
         <div className="tile"><div className="eyebrow">Executing value / mo</div><div className="k mono">{rp(coverage.committed + coverage.planned)}</div><div className="d">confidence-weighted · Execute + Done</div></div>
         <div className="tile"><div className="eyebrow">Coverage of gap</div><div className="k mono">{coverage.coverage_pct}%</div><div className="d">ideas only: {rp(coverage.pipeline)}</div></div>
         <div className="tile"><div className="eyebrow">Gap remaining · risk-adj</div><div className="k mono">{rp(Math.max(0, gap - coverage.total_ra))}</div><div className="d">to {rp(T)} target</div></div>
+        <div className="tile warn"><div className="eyebrow">Reachable now · unblocked</div><div className="k mono">{rp(coverage.unblocked)}</div><div className="d">{rp(coverage.blocked)} blocked behind enablers</div></div>
       </div>
 
       {/* FILTER BAR */}
@@ -223,6 +227,7 @@ export default function Cockpit({ rows: allRows, coverage, config, stages, miles
                       {r.id}
                       {r.rag_effective && <span className="rag" style={{ background: `var(${RAGV[r.rag_effective]})`, marginLeft: 6 }} />}
                       {age != null && lane.key !== 'idea' && <span className="pcage" title={`In ${lane.title} ${age} days`}>{lane.title.toLowerCase()} {age}d</span>}
+                      {isBlocked(r) && <span className="blocktag" title={`Blocked by ${r.blocked_by!.join(', ')}`}>⛔ {r.blocked_by!.join(' ')}</span>}
                       {stale && <span className="staletag" title={`No update in ${daysSince(r.updated_at)} days`}>stale {daysSince(r.updated_at)}d</span>}
                       {r.status === 'Killed' && <span className="killtag">killed</span>}
                     </div>
@@ -307,6 +312,42 @@ export default function Cockpit({ rows: allRows, coverage, config, stages, miles
             </div>
             <div className="db">
               <div className="desc">{open.description}</div>
+
+              {isBlocked(open) && (
+                <div className="blockbar">
+                  <span className="bb-i">⛔</span>
+                  <span>Blocked — waiting on {open.blocked_by!.map((id, i) => (
+                    <span key={id}>{i ? ', ' : ''}<button className="depinline" onClick={() => setOpenId(id)}>{id} {nameById[id]}</button></span>
+                  ))} to reach Done.</span>
+                </div>
+              )}
+
+              {(open.how_it_works || (open.steps && open.steps.length) || open.done_when) && (
+                <div className="playbook">
+                  {open.how_it_works && <div className="pb-fld"><span className="section-t">How it works</span><p>{open.how_it_works}</p></div>}
+                  {open.steps && open.steps.length > 0 && (
+                    <div className="pb-fld"><span className="section-t">How to execute</span>
+                      <ol className="pb-steps">{open.steps.map((s, i) => <li key={i}>{s}</li>)}</ol>
+                    </div>
+                  )}
+                  {open.done_when && <div className="pb-fld"><span className="section-t">Done when</span><p className="pb-done">{open.done_when}</p></div>}
+                </div>
+              )}
+
+              {open.depends_on && open.depends_on.length > 0 && (
+                <>
+                  <p className="section-t">Depends on</p>
+                  <div className="deps">
+                    {open.depends_on.map(id => {
+                      const dep = allRows.find(x => x.id === id);
+                      const done = dep ? dep.stage >= 5 : false;
+                      return <button key={id} className={'dep' + (done ? ' met' : ' unmet')} onClick={() => setOpenId(id)}>
+                        <b>{id}</b> {nameById[id] || ''}<span className="dep-st">{done ? '✓ done' : dep ? stateOf(dep.stage) : '—'}</span>
+                      </button>;
+                    })}
+                  </div>
+                </>
+              )}
 
               <p className="section-t">Owner</p>
               <div className="owner-set">
@@ -439,7 +480,10 @@ function CardStatus({ row, save }: { row: ScoredRow; save: (patch: Record<string
   const saveNote = () => { if (noteDirty) save({ note: note.trim() || null }); };
   const saveActual = () => { if (actualDirty) save({ kpi_actual: actual === '' ? null : Number(actual) }); };
 
-  const pct = row.kpi_target ? Math.max(0, Math.min(100, Math.round(((Number(actual) || 0) / row.kpi_target) * 100))) : null;
+  // Progress against a baseline: (actual − baseline) / (target − baseline).
+  const base = row.kpi_baseline ?? 0;
+  const span = (row.kpi_target ?? 0) - base;
+  const pct = span !== 0 ? Math.max(0, Math.min(100, Math.round(((Number(actual) || 0) - base) / span * 100))) : null;
 
   return (
     <div className="cardstatus">
@@ -457,15 +501,17 @@ function CardStatus({ row, save }: { row: ScoredRow; save: (patch: Record<string
 
       {row.kpi_label ? (
         <>
-          <p className="section-t">KPI · {row.kpi_label}</p>
+          <p className="section-t">KPI · {row.kpi_label} {row.kpi_leading != null && <span className={'kpi-tag ' + (row.kpi_leading ? 'lead' : 'lag')}>{row.kpi_leading ? 'leading' : 'lagging'}</span>}</p>
           <div className="kpi-row">
+            {row.kpi_baseline != null && <><span className="kpi-tgt mono">{row.kpi_baseline}{row.kpi_unit}</span><span className="kpi-sep">base →</span></>}
             <input className="kpi-a mono" type="number" value={actual} placeholder="actual"
               onChange={e => setActual(e.target.value)} onBlur={saveActual} />
             <span className="kpi-unit">{row.kpi_unit}</span>
-            <span className="kpi-sep">of target</span>
+            <span className="kpi-sep">→ target</span>
             <span className="kpi-tgt mono">{row.kpi_target ?? '—'}{row.kpi_unit}</span>
           </div>
           {pct != null && <div className="kpi-bar"><i style={{ width: pct + '%' }} /></div>}
+          {pct != null && <div className="kpi-pct mono">{pct}% of the way from baseline to target</div>}
         </>
       ) : null}
     </div>
@@ -599,6 +645,12 @@ function InitiativeModal({ mode, row, buckets, pics, onClose, save }: {
     kpi_label: row?.kpi_label ?? '',
     kpi_target: row?.kpi_target ?? ('' as number | ''),
     kpi_unit: row?.kpi_unit ?? '',
+    kpi_baseline: row?.kpi_baseline ?? ('' as number | ''),
+    kpi_leading: row?.kpi_leading ?? false,
+    how_it_works: row?.how_it_works ?? '',
+    steps: (row?.steps ?? []).join('\n'),
+    done_when: row?.done_when ?? '',
+    depends_on: (row?.depends_on ?? []).join(', '),
   });
   const upd = (k: keyof typeof f, v: unknown) => setF(s => ({ ...s, [k]: v }));
   const num = (e: ReactChangeEvent<HTMLInputElement>) => e.target.valueAsNumber;
@@ -622,6 +674,12 @@ function InitiativeModal({ mode, row, buckets, pics, onClose, save }: {
       kpi_label: f.kpi_label.trim() || null,
       kpi_target: f.kpi_target === '' ? null : Number(f.kpi_target),
       kpi_unit: f.kpi_unit.trim() || null,
+      kpi_baseline: f.kpi_baseline === '' ? null : Number(f.kpi_baseline),
+      kpi_leading: f.kpi_leading,
+      how_it_works: f.how_it_works.trim() || null,
+      steps: f.steps.split('\n').map(s => s.trim()).filter(Boolean),
+      done_when: f.done_when.trim() || null,
+      depends_on: f.depends_on.split(',').map(s => s.trim().toUpperCase()).filter(Boolean),
     });
     onClose();
   };
@@ -766,12 +824,40 @@ function InitiativeModal({ mode, row, buckets, pics, onClose, save }: {
               <div className="finput"><input value={f.kpi_label} onChange={e => upd('kpi_label', e.target.value)} placeholder="e.g. Repeat rate, AOV, WA conversion" /></div>
             </label>
             <label className="field">
+              <span className="flbl">Baseline</span>
+              <div className="finput"><input type="number" className="mono" value={f.kpi_baseline === '' ? '' : f.kpi_baseline} onChange={e => upd('kpi_baseline', Number.isNaN(e.target.valueAsNumber) ? '' : e.target.valueAsNumber)} /></div>
+            </label>
+            <label className="field">
               <span className="flbl">Target</span>
               <div className="finput"><input type="number" className="mono" value={f.kpi_target === '' ? '' : f.kpi_target} onChange={e => upd('kpi_target', Number.isNaN(e.target.valueAsNumber) ? '' : e.target.valueAsNumber)} /></div>
             </label>
             <label className="field">
               <span className="flbl">Unit</span>
               <div className="finput"><input value={f.kpi_unit} onChange={e => upd('kpi_unit', e.target.value)} placeholder="% · Rp · orders" /></div>
+            </label>
+            <label className="field chk">
+              <input type="checkbox" checked={f.kpi_leading} onChange={e => upd('kpi_leading', e.target.checked)} />
+              <span className="flbl">Leading indicator (watch the input, not just the outcome)</span>
+            </label>
+          </div>
+
+          <div className="fsec">Playbook <span className="fsec-note">so anyone can follow · shows in the drawer</span></div>
+          <div className="fgrid">
+            <label className="field span2">
+              <span className="flbl">How it works</span>
+              <textarea className="ftext" rows={2} value={f.how_it_works} onChange={e => upd('how_it_works', e.target.value)} placeholder="The mechanism in a sentence" />
+            </label>
+            <label className="field span2">
+              <span className="flbl">How to execute · one step per line</span>
+              <textarea className="ftext" rows={4} value={f.steps} onChange={e => upd('steps', e.target.value)} placeholder={"Step 1\nStep 2\nStep 3"} />
+            </label>
+            <label className="field span2">
+              <span className="flbl">Done when</span>
+              <textarea className="ftext" rows={2} value={f.done_when} onChange={e => upd('done_when', e.target.value)} placeholder="The definition of done" />
+            </label>
+            <label className="field span2">
+              <span className="flbl">Depends on · initiative IDs, comma-separated</span>
+              <div className="finput"><input className="mono" value={f.depends_on} onChange={e => upd('depends_on', e.target.value)} placeholder="e.g. G1, G6, F6" /></div>
             </label>
           </div>
         </div>
