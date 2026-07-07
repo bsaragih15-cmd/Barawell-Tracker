@@ -60,3 +60,7 @@ The register is meant to grow, so add/edit initiatives ship as a founder-facing 
 **D13 · Owners (PICs) as a lookup table, not free text.**
 `initiatives.owner` (free text) stays for legacy, but accountability now runs through a `pics` table + `owner_id` FK, joined into the scored view as `owner_name`/`owner_is_lead`. A lookup keeps names consistent, powers avatars, and sets up "my initiatives" filtering and (eventually) per-owner RLS once Auth lands (D3).
 *Reopens if:* owners need roles/capacity or map to real auth users — join `pics` to Supabase Auth users.
+
+**D14 · 3-lane Execution board is a projection of the stage-gates, not a second state.**
+Idea = L1–L2, Execute = L3–L4, Done = L5. Dragging a card between lanes writes the lane's canonical stage (Idea→L2, Execute→L4, Done→L5) via the same `stage` column — so the coverage bridge, confidence weighting, and the 5-column Pipeline always agree with the board. Deliberately no separate "workflow status" field: two lifecycles would drift.
+*Reopens if:* the team needs execution states orthogonal to value confidence (e.g. "blocked") — add a field then, don't overload `stage`.
