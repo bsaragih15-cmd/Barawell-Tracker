@@ -64,6 +64,9 @@ Effort: S (<2h) · M (half-day) · L (1–2 days).
 
 ## Done
 
+### [reg] GLP-1 program cluster + adjacent levers added — 2026-07-07
+- `0007_seed_glp1_and_more.sql`: F4 GLP-1 program · F5 subscription/titration · F6 screening · G5 cold-chain (enabler) · G6 regulatory (enabler) · B5 companion bundle · C6 payments · A6 predictive churn. Register 31→39; coverage 54%→63%.
+
 ### [P1·M] Card pass: status note, next-action, KPI, age-in-state, activity log — 2026-07-07
 - `0006_card_fields_and_changelog.sql`: card fields (note, next_action/next_due, kpi_label/target/actual/unit, state_since) + `change_log` table; view recreated so fields flow through.
 - Mini-card now shows age-in-state, the status note, next action/milestone, and a milestone progress bar.
