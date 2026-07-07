@@ -13,9 +13,13 @@ export async function moveStage(id: string, dir: number) {
   revalidatePath('/');
 }
 
+// Setting a RAG is a manual override; clearing it (null) reverts to the
+// milestone-derived auto-RAG computed in v_initiatives_scored.
 export async function setRag(id: string, rag: 'Green' | 'Amber' | 'Red' | null) {
   const sb = supabaseAdmin();
-  await sb.from('initiatives').update({ rag, updated_at: now() }).eq('id', id);
+  await sb.from('initiatives')
+    .update({ rag, rag_override: rag !== null, updated_at: now() })
+    .eq('id', id);
   revalidatePath('/');
 }
 

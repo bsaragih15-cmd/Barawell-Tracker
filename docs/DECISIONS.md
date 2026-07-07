@@ -47,3 +47,8 @@ Deliberately not the generic SaaS-gradient or the AI-default cream-serif-terraco
 
 **D10 · Tracking layer (milestones, RAG, trajectory) shipped in v1; phasing/attrition/auto-RAG deferred.**
 Milestones + manual RAG + a frontend-derived trajectory ramp are enough to run reviews. Stored phasing, milestone-driven auto-RAG, and inter-gate attrition are the next layer — real once initiatives are actually in-flight, premature before.
+*Update 2026-07-07:* milestone-driven auto-RAG now shipped (`0002_auto_rag.sql`) — computed in `v_initiatives_scored` (rule D2), with a `rag_override` flag so a hand-set RAG still wins. Stored phasing and attrition remain deferred.
+
+**D11 · Config edited via a UI modal, not just raw SQL.**
+The `updateConfig` action existed but had no surface; assumptions (D8) change often as real data lands, so a founder-facing "Assumptions" modal now writes `config` and lets the view re-price everything. No math moved to the client — the form only writes inputs.
+*Reopens if:* config becomes multi-row/versioned (per-review snapshots), which would need a different editor.
