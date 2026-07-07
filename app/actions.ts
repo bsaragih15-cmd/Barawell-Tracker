@@ -37,6 +37,23 @@ export async function toggleMilestone(mid: number, done: boolean) {
   revalidatePath('/');
 }
 
+export async function addMilestone(initiativeId: string, title: string, dueDate: string | null) {
+  const sb = supabaseAdmin();
+  const t = title.trim();
+  if (!t) return;
+  const { data } = await sb.from('milestones').select('sort').eq('initiative_id', initiativeId).order('sort', { ascending: false }).limit(1);
+  const sort = ((data?.[0]?.sort as number | undefined) ?? -1) + 1;
+  await sb.from('milestones').insert({ initiative_id: initiativeId, title: t, due_date: dueDate || null, sort });
+  await sb.from('initiatives').update({ updated_at: now() }).eq('id', initiativeId);
+  revalidatePath('/');
+}
+
+export async function deleteMilestone(mid: number) {
+  const sb = supabaseAdmin();
+  await sb.from('milestones').delete().eq('id', mid);
+  revalidatePath('/');
+}
+
 export async function updateConfig(patch: Record<string, number>) {
   const sb = supabaseAdmin();
   await sb.from('config').update({ ...patch, updated_at: now() }).eq('id', 1);

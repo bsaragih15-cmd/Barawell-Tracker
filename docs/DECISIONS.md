@@ -64,3 +64,11 @@ The register is meant to grow, so add/edit initiatives ship as a founder-facing 
 **D14 · 3-lane Execution board is a projection of the stage-gates, not a second state.**
 Idea = L1–L2, Execute = L3–L4, Done = L5. Dragging a card between lanes writes the lane's canonical stage (Idea→L2, Execute→L4, Done→L5) via the same `stage` column — so the coverage bridge, confidence weighting, and the 5-column Pipeline always agree with the board. Deliberately no separate "workflow status" field: two lifecycles would drift.
 *Reopens if:* the team needs execution states orthogonal to value confidence (e.g. "blocked") — add a field then, don't overload `stage`.
+
+**D15 · Single-view cockpit: the Execution board is the app.**
+Pipeline/Register/Prioritize/Trajectory tabs removed at the owner's call — the operating surface is the 3-lane board plus the coverage hero. Filters (needs-attention, per-owner) replace separate views. The removed views' data still exists (the SQL views are unchanged); re-adding a tab is a UI-only change.
+*Reopens if:* prioritization sessions need the ICE/quadrant matrix back — restore the Prioritize tab from git history.
+
+**D16 · Adherence layer: stale detection, needs-attention filter, weekly snapshots.**
+Adherence = the tool pushing the team, not just measuring. Three mechanisms: (1) a card is **stale** after 14 days without update (`updated_at`, display-layer only — not business math); (2) **Needs attention** = Red/Amber, overdue milestone, or stale, one click; (3) `coverage_snapshots` stores one `v_coverage` row per ISO week (idempotent upsert on page load, `capture_coverage_snapshot()`), and the hero shows Δ coverage vs last week — the number that creates pressure when it doesn't move. Milestones are now CRUD-able from the drawer so auto-RAG has signal on every in-flight initiative.
+*Reopens if:* a scheduler (n8n/pg_cron) replaces capture-on-load, or the stale threshold needs to be config.
