@@ -3,7 +3,7 @@
 import { useState, useTransition, useMemo } from 'react';
 import type { ChangeEvent as ReactChangeEvent, DragEvent as ReactDragEvent } from 'react';
 import type { ScoredRow, Coverage, Config, Stage, Milestone, Pic, Snapshot } from './types';
-import { moveStage, setStage, setRag, toggleMilestone, addMilestone, deleteMilestone, updateConfig, createInitiative, updateInitiative, setOwner, setStatus } from './actions';
+import { setStage, setRag, toggleMilestone, addMilestone, deleteMilestone, updateConfig, createInitiative, updateInitiative, setOwner, setStatus } from './actions';
 
 const rp = (v: number) => {
   const a = Math.abs(v); let s: string;
@@ -16,6 +16,13 @@ const rp = (v: number) => {
 const STCOLOR = (n: number) => `--s${n}`;
 const RAGV: Record<string, string> = { Green: '--rag-g', Amber: '--rag-a', Red: '--rag-r' };
 const STALE_DAYS = 14;
+
+// The only lifecycle vocabulary in the UI. The SQL engine still weights value
+// by the underlying stage confidence; the UI never surfaces L-codes.
+type StateName = 'Idea' | 'Execute' | 'Done';
+const stateOf = (stage: number): StateName => (stage <= 2 ? 'Idea' : stage === 5 ? 'Done' : 'Execute');
+const STATE_STAGE: Record<StateName, number> = { Idea: 2, Execute: 4, Done: 5 }; // canonical stage per state
+const STATE_COLOR: Record<StateName, string> = { Idea: '--s2', Execute: '--s4', Done: '--s5' };
 
 const initials = (name: string) => name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
 // Deterministic muted colour per owner id so avatars are recognisable at a glance.
@@ -34,6 +41,9 @@ function Avatar({ name, ownerId, size = 20 }: { name: string; ownerId: string; s
 export default function Cockpit({ rows: allRows, coverage, config, stages, milestones, pics, snapshots }:
   { rows: ScoredRow[]; coverage: Coverage; config: Config; stages: Stage[]; milestones: Milestone[]; pics: Pic[]; snapshots: Snapshot[]; }) {
 
+  const [view, setView] = useState<'board' | 'list'>('board');
+  const [sortKey, setSortKey] = useState<keyof ScoredRow>('ra_rev');
+  const [sortDir, setSortDir] = useState(-1);
   const [openId, setOpenId] = useState<string | null>(null);
   const [cfgOpen, setCfgOpen] = useState(false);
   const [formOpen, setFormOpen] = useState<null | { mode: 'new' } | { mode: 'edit'; row: ScoredRow }>(null);
@@ -102,9 +112,9 @@ export default function Cockpit({ rows: allRows, coverage, config, stages, miles
   // Idea = L1–L2 · Execute = L3–L4 · Done = L5. Dropping into a lane moves
   // the gate to the lane's canonical stage.
   const LANES = [
-    { key: 'idea', title: 'Idea', hint: 'L1–L2 · not yet planned', match: (s: number) => s <= 2, toStage: 2, color: '--s2' },
-    { key: 'execute', title: 'Execute', hint: 'L3–L4 · planned & in-flight', match: (s: number) => s === 3 || s === 4, toStage: 4, color: '--s4' },
-    { key: 'done', title: 'Done', hint: 'L5 · realized', match: (s: number) => s === 5, toStage: 5, color: '--s5' },
+    { key: 'idea', title: 'Idea', hint: 'backlog · not yet started', match: (s: number) => stateOf(s) === 'Idea', toStage: STATE_STAGE.Idea, color: STATE_COLOR.Idea },
+    { key: 'execute', title: 'Execute', hint: 'in progress', match: (s: number) => stateOf(s) === 'Execute', toStage: STATE_STAGE.Execute, color: STATE_COLOR.Execute },
+    { key: 'done', title: 'Done', hint: 'realized · value landing', match: (s: number) => stateOf(s) === 'Done', toStage: STATE_STAGE.Done, color: STATE_COLOR.Done },
   ] as const;
 
   return (
@@ -136,31 +146,33 @@ export default function Cockpit({ rows: allRows, coverage, config, stages, miles
         </div>
         <div className="bridge">
           <div className="seg base" style={{ width: seg(cur) }} />
-          <div className="seg commit" style={{ width: seg(coverage.committed) }} />
-          <div className="seg plan" style={{ width: seg(coverage.planned) }} />
+          <div className="seg commit" style={{ width: seg(coverage.committed + coverage.planned) }} />
           <div className="seg pipe" style={{ width: seg(pipeCapped) }} />
           <div className="g-target" />
         </div>
         <div className="g-labels mono"><span>Current <b>{rp(cur)}</b></span><span>Target {rp(T)}</span></div>
         <div className="g-legend">
           <span><i className="sw" style={{ background: '#1E2530' }} />Current run-rate</span>
-          <span><i className="sw" style={{ background: 'var(--s5)' }} />Committed (L4–L5)</span>
-          <span><i className="sw" style={{ background: 'var(--s3)' }} />Planned (L3)</span>
-          <span><i className="sw" style={{ background: '#C3CEDA' }} />Pipeline (L1–L2)</span>
+          <span><i className="sw" style={{ background: 'var(--s5)' }} />Executing + Done</span>
+          <span><i className="sw" style={{ background: '#C3CEDA' }} />Ideas</span>
           <span><i className="sw" style={{ background: 'var(--line)' }} />Gap remaining</span>
         </div>
       </div>
 
       <div className="tiles">
         <div className="tile accent"><div className="eyebrow">Projected run-rate · risk-adj</div><div className="k mono">{rp(coverage.projected)}</div><div className="d">current + confidence-weighted pipeline</div></div>
-        <div className="tile"><div className="eyebrow">Committed value / mo</div><div className="k mono">{rp(coverage.committed)}</div><div className="d">L4 in-flight + L5 realized</div></div>
-        <div className="tile"><div className="eyebrow">Coverage of gap</div><div className="k mono">{coverage.coverage_pct}%</div><div className="d">committed only: {coverage.committed_pct}%</div></div>
+        <div className="tile"><div className="eyebrow">Executing value / mo</div><div className="k mono">{rp(coverage.committed + coverage.planned)}</div><div className="d">confidence-weighted · Execute + Done</div></div>
+        <div className="tile"><div className="eyebrow">Coverage of gap</div><div className="k mono">{coverage.coverage_pct}%</div><div className="d">ideas only: {rp(coverage.pipeline)}</div></div>
         <div className="tile"><div className="eyebrow">Gap remaining · risk-adj</div><div className="k mono">{rp(Math.max(0, gap - coverage.total_ra))}</div><div className="d">to {rp(T)} target</div></div>
       </div>
 
       {/* FILTER BAR */}
       <div className="tabs">
         <div className="filterset">
+          <div className="tabset">
+            {([['board', 'Board'], ['list', 'Full list']] as const).map(([v, l]) =>
+              <button key={v} className={'tab' + (view === v ? ' on' : '')} onClick={() => setView(v)}>{l}</button>)}
+          </div>
           <button className={'filter-chip attn' + (attentionOnly ? ' on' : '')} onClick={() => setAttentionOnly(a => !a)}>
             <span className="fc-dot" />Needs attention <b className="mono">{attentionCount}</b>
           </button>
@@ -178,6 +190,7 @@ export default function Cockpit({ rows: allRows, coverage, config, stages, miles
       </div>
 
       {/* EXECUTION BOARD */}
+      {view === 'board' && (
       <div className="exec-board">
         {LANES.map(lane => {
           const rs = rows.filter(r => lane.match(r.stage)).sort((a, b) => b.ra_rev - a.ra_rev);
@@ -197,7 +210,7 @@ export default function Cockpit({ rows: allRows, coverage, config, stages, miles
                   <div className={'pcard' + (r.status === 'Killed' ? ' killed' : '') + (dragId === r.id ? ' dragging' : '')} key={r.id}
                     style={{ borderTopColor: `var(${STCOLOR(r.stage)})` }} onClick={() => setOpenId(r.id)} {...dragProps(r)}>
                     <div className="pcid mono">
-                      {r.id} · {r.stage_code}
+                      {r.id}
                       {r.rag_effective && <span className="rag" style={{ background: `var(${RAGV[r.rag_effective]})`, marginLeft: 6 }} />}
                       {stale && <span className="staletag" title={`No update in ${daysSince(r.updated_at)} days`}>stale {daysSince(r.updated_at)}d</span>}
                       {r.status === 'Killed' && <span className="killtag">killed</span>}
@@ -223,6 +236,41 @@ export default function Cockpit({ rows: allRows, coverage, config, stages, miles
           );
         })}
       </div>
+      )}
+
+      {/* FULL LIST */}
+      {view === 'list' && (
+        <div className="panel">
+          <table>
+            <thead><tr>
+              {([['id', 'ID', 0], ['name', 'Initiative', 0], ['owner_name', 'Owner', 0], ['stage', 'State', 0], ['pl_line', 'P&L', 0], ['rag', 'RAG', 0],
+                ['incr_rev', 'Gross / mo', 1], ['ra_rev', 'Risk-adj / mo', 1], ['ice', 'ICE', 1], ['updated_at', 'Updated', 1]] as const)
+                .map(([k, l, n], i) => <th key={i} className={n ? 'num' : ''} onClick={() => { setSortKey(k as keyof ScoredRow); setSortDir((d: number) => sortKey === k ? -d : (k === 'name' || k === 'id' || k === 'pl_line' || k === 'owner_name') ? 1 : -1); }}>{l}</th>)}
+            </tr></thead>
+            <tbody>
+              {[...rows].sort((a, b) => { const av = a[sortKey] as string | number | null, bv = b[sortKey] as string | number | null; return typeof av === 'string' ? sortDir * av.localeCompare((bv as string) ?? '') : sortDir * (((av as number) || 0) - ((bv as number) || 0)); }).map(r => {
+                const st = stateOf(r.stage);
+                return (
+                  <tr key={r.id} className={r.status === 'Killed' ? 'killed-row' : ''} onClick={() => setOpenId(r.id)}>
+                    <td className="id mono">{r.id}</td>
+                    <td className="name">{r.name}{isStale(r) && <span className="staletag">stale {daysSince(r.updated_at)}d</span>}{r.status === 'Killed' && <span className="killtag">killed</span>}<div className="drv">{r.driver}</div></td>
+                    <td>{r.owner_name && r.owner_id
+                      ? <span className="ownercell"><Avatar name={r.owner_name} ownerId={r.owner_id} size={18} />{r.owner_name}</span>
+                      : <span style={{ color: 'var(--ink-3)' }}>—</span>}</td>
+                    <td><span className="stg" style={{ background: `var(${STATE_COLOR[st]}s)`, color: `var(${STATE_COLOR[st]})` }}>{st}</span></td>
+                    <td className="pl">{r.pl_line}</td>
+                    <td>{r.rag_effective ? <span className="rag" title={r.rag_override ? 'manual' : 'auto'} style={{ background: `var(${RAGV[r.rag_effective]})`, opacity: r.rag_override ? 1 : 0.75 }} /> : <span style={{ color: 'var(--ink-3)' }}>—</span>}</td>
+                    <td className="num mono">{r.incr_rev > 0 ? rp(r.incr_rev) : '—'}</td>
+                    <td className="num mono" style={{ fontWeight: 600, color: 'var(--accent-ink)' }}>{r.ra_rev > 0 ? rp(r.ra_rev) : '—'}</td>
+                    <td className="num mono" style={{ fontWeight: 600 }}>{r.ice}</td>
+                    <td className="num mono" style={{ fontSize: 11, color: 'var(--ink-3)' }}>{r.updated_at.slice(0, 10)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* ASSUMPTIONS MODAL */}
       {cfgOpen && (
@@ -257,15 +305,16 @@ export default function Cockpit({ rows: allRows, coverage, config, stages, miles
                 ))}
               </div>
 
-              <div className="rail">
-                {stages.map(st => {
-                  const cls = st.n < open.stage ? 'done' : st.n === open.stage ? 'done cur' : '';
-                  return <div className={'rnode ' + cls} key={st.n}><div className="rdot">{st.code.slice(1)}</div><div className="rlbl">{st.name}</div></div>;
-                })}
-              </div>
-              <div className="gatebar">
-                <button disabled={open.stage <= 1} onClick={() => act(() => moveStage(open.id, -1))}>◂ Regress</button>
-                <button className="adv" disabled={open.stage >= 5} onClick={() => act(() => moveStage(open.id, 1))}>Advance gate ▸</button>
+              <p className="section-t">State</p>
+              <div className="state-set">
+                {(['Idea', 'Execute', 'Done'] as StateName[]).map(s => (
+                  <button key={s}
+                    className={'state-btn' + (stateOf(open.stage) === s ? ' on' : '')}
+                    style={stateOf(open.stage) === s ? { borderColor: `var(${STATE_COLOR[s]})`, background: `var(${STATE_COLOR[s]}s)`, color: `var(${STATE_COLOR[s]})` } : undefined}
+                    onClick={() => { if (stateOf(open.stage) !== s) act(() => setStage(open.id, STATE_STAGE[s])); }}>
+                    {s}
+                  </button>
+                ))}
               </div>
 
               <p className="section-t">Delivery status (RAG)</p>
@@ -304,7 +353,7 @@ export default function Cockpit({ rows: allRows, coverage, config, stages, miles
                 <div className="crow"><span className="cl">× Uplift</span><span className="cv mono">{Math.round(open.uplift * 100)}%</span></div>
                 <div className="crow"><span className="cl">× Coverage</span><span className="cv mono">{Math.round(open.coverage * 100)}%</span></div>
                 <div className="crow"><span className="cl">= Gross revenue / mo</span><span className="cv mono">{open.incr_rev > 0 ? rp(open.incr_rev) : '—'}</span></div>
-                <div className="crow"><span className="cl">× Stage confidence ({open.stage_code})</span><span className="cv mono">{Math.round(open.stage_conf * 100)}%</span></div>
+                <div className="crow"><span className="cl">× Confidence ({stateOf(open.stage)})</span><span className="cv mono">{Math.round(open.stage_conf * 100)}%</span></div>
                 <div className="crow eq"><span className="cl">Risk-adjusted value / mo</span><span className="cv mono">{open.ra_rev > 0 ? rp(open.ra_rev) : '—'}</span></div>
               </div>
               <div className="calc">
@@ -337,7 +386,6 @@ export default function Cockpit({ rows: allRows, coverage, config, stages, miles
           row={formOpen.mode === 'edit' ? formOpen.row : null}
           buckets={buckets}
           pics={pics}
-          stages={stages}
           onClose={() => setFormOpen(null)}
           save={(input) => act(async () => {
             if (formOpen.mode === 'new') { await createInitiative(input); }
@@ -450,8 +498,8 @@ const BASE_TYPES: [string, string][] = [
   ['DIRECT', 'Direct Rp (set manually)'],
 ];
 
-function InitiativeModal({ mode, row, buckets, pics, stages, onClose, save }: {
-  mode: 'new' | 'edit'; row: ScoredRow | null; buckets: string[]; pics: Pic[]; stages: Stage[];
+function InitiativeModal({ mode, row, buckets, pics, onClose, save }: {
+  mode: 'new' | 'edit'; row: ScoredRow | null; buckets: string[]; pics: Pic[];
   onClose: () => void; save: (input: Record<string, unknown>) => void;
 }) {
   const [f, setF] = useState({
@@ -615,9 +663,9 @@ function InitiativeModal({ mode, row, buckets, pics, stages, onClose, save }: {
               </select></div>
             </label>
             <label className="field">
-              <span className="flbl">Stage-gate</span>
-              <div className="finput"><select value={f.stage} onChange={e => upd('stage', parseInt(e.target.value, 10))}>
-                {stages.map(s => <option key={s.n} value={s.n}>{s.code} · {s.name}</option>)}
+              <span className="flbl">State</span>
+              <div className="finput"><select value={STATE_STAGE[stateOf(f.stage)]} onChange={e => upd('stage', parseInt(e.target.value, 10))}>
+                {(['Idea', 'Execute', 'Done'] as StateName[]).map(s => <option key={s} value={STATE_STAGE[s]}>{s}</option>)}
               </select></div>
             </label>
             <label className="field chk">
