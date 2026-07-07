@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
-import type { MouseEvent as ReactMouseEvent, ChangeEvent as ReactChangeEvent } from 'react';
+import type { MouseEvent as ReactMouseEvent, ChangeEvent as ReactChangeEvent, DragEvent as ReactDragEvent } from 'react';
 import type { ScoredRow, Coverage, Config, Stage, Milestone, Pic } from './types';
-import { moveStage, setRag, toggleMilestone, updateConfig, createInitiative, updateInitiative, setOwner, setStatus } from './actions';
+import { moveStage, setStage, setRag, toggleMilestone, updateConfig, createInitiative, updateInitiative, setOwner, setStatus } from './actions';
 
 const rp = (v: number) => {
   const a = Math.abs(v); let s: string;
@@ -33,7 +33,9 @@ function Avatar({ name, ownerId, size = 20 }: { name: string; ownerId: string; s
 export default function Cockpit({ rows: allRows, coverage, config, stages, milestones, pics }:
   { rows: ScoredRow[]; coverage: Coverage; config: Config; stages: Stage[]; milestones: Milestone[]; pics: Pic[]; }) {
 
-  const [view, setView] = useState<'pipe' | 'table' | 'board' | 'traj'>('pipe');
+  const [view, setView] = useState<'pipe' | 'exec' | 'table' | 'board' | 'traj'>('pipe');
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<string | null>(null); // 'st3' | 'lane-execute' …
   const [openId, setOpenId] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<keyof ScoredRow>('ice');
   const [sortDir, setSortDir] = useState(-1);
@@ -55,6 +57,34 @@ export default function Cockpit({ rows: allRows, coverage, config, stages, miles
   const pipeCapped = Math.min(coverage.pipeline, Math.max(0, T - cur - coverage.committed - coverage.planned));
 
   const act = (fn: () => Promise<void>) => start(() => { fn(); });
+
+  // ---- drag & drop: cards carry their id; columns/lanes accept a drop ----
+  const dragProps = (r: ScoredRow) => ({
+    draggable: true,
+    onDragStart: (e: ReactDragEvent) => { setDragId(r.id); e.dataTransfer.setData('text/plain', r.id); e.dataTransfer.effectAllowed = 'move'; },
+    onDragEnd: () => { setDragId(null); setDropTarget(null); },
+  });
+  const dropProps = (key: string, toStage: number) => ({
+    onDragOver: (e: ReactDragEvent) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDropTarget(key); },
+    onDragLeave: () => setDropTarget(t => (t === key ? null : t)),
+    onDrop: (e: ReactDragEvent) => {
+      e.preventDefault();
+      const id = e.dataTransfer.getData('text/plain') || dragId;
+      setDragId(null); setDropTarget(null);
+      if (!id) return;
+      const row = allRows.find(x => x.id === id);
+      if (row && row.stage !== toStage) act(() => setStage(id, toStage));
+    },
+  });
+
+  // 3-layer execution board mapped onto the stage-gates (no second state):
+  // Idea = L1–L2 · Execute = L3–L4 · Done = L5. Dropping into a lane moves
+  // the gate to the lane's canonical stage.
+  const LANES = [
+    { key: 'idea', title: 'Idea', hint: 'L1–L2 · not yet planned', match: (s: number) => s <= 2, toStage: 2, color: '--s2' },
+    { key: 'execute', title: 'Execute', hint: 'L3–L4 · planned & in-flight', match: (s: number) => s === 3 || s === 4, toStage: 4, color: '--s4' },
+    { key: 'done', title: 'Done', hint: 'L5 · realized', match: (s: number) => s === 5, toStage: 5, color: '--s5' },
+  ] as const;
 
   const bars = (n: number) => (
     <span className="bars">{[1, 2, 3, 4, 5].map(i => <span key={i} className={'bar' + (i <= n ? ' f' : '')} />)}</span>
@@ -134,7 +164,7 @@ export default function Cockpit({ rows: allRows, coverage, config, stages, miles
 
       <div className="tabs">
         <div className="tabset">
-          {([['pipe', 'Pipeline'], ['table', 'Register'], ['board', 'Prioritize'], ['traj', 'Trajectory']] as const).map(([v, l]) =>
+          {([['pipe', 'Pipeline'], ['exec', 'Execution'], ['table', 'Register'], ['board', 'Prioritize'], ['traj', 'Trajectory']] as const).map(([v, l]) =>
             <button key={v} className={'tab' + (view === v ? ' on' : '')} onClick={() => setView(v)}>{l}</button>)}
         </div>
         <div className="meta">
@@ -150,12 +180,12 @@ export default function Cockpit({ rows: allRows, coverage, config, stages, miles
             const rs = rows.filter(r => r.stage === st.n).sort((a, b) => b.ra_rev - a.ra_rev);
             const sum = rs.reduce((s, r) => s + r.ra_rev, 0);
             return (
-              <div className="pcol" key={st.n}>
+              <div className={'pcol' + (dropTarget === 'st' + st.n ? ' dropon' : '')} key={st.n} {...dropProps('st' + st.n, st.n)}>
                 <div className="pcol-h"><span className="pt" style={{ color: `var(${STCOLOR(st.n)})` }}>{st.code} · {st.name}</span><span className="pc">{rs.length}</span></div>
                 <div className="pcol-conf">confidence {Math.round(st.confidence * 100)}%</div>
                 <div className="pcol-sum mono" style={{ color: `var(${STCOLOR(st.n)})` }}>{rp(sum)}/mo</div>
                 {rs.map(r => (
-                  <div className={'pcard' + (r.status === 'Killed' ? ' killed' : '')} key={r.id} style={{ borderTopColor: `var(${STCOLOR(st.n)})` }} onClick={() => setOpenId(r.id)}>
+                  <div className={'pcard' + (r.status === 'Killed' ? ' killed' : '') + (dragId === r.id ? ' dragging' : '')} key={r.id} style={{ borderTopColor: `var(${STCOLOR(st.n)})` }} onClick={() => setOpenId(r.id)} {...dragProps(r)}>
                     <div className="pcid mono">{r.id}{r.rag_effective && <span className="rag" title={r.rag_override ? 'RAG · manual' : 'RAG · auto from milestones'} style={{ background: `var(${RAGV[r.rag_effective]})`, marginLeft: 6 }} />}{r.status === 'Killed' && <span className="killtag">killed</span>}</div>
                     <div className="pcname">{r.name}</div>
                     <div className="pcfoot">
@@ -169,6 +199,40 @@ export default function Cockpit({ rows: allRows, coverage, config, stages, miles
                     </div>
                   </div>
                 ))}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {view === 'exec' && (
+        <div className="exec-board">
+          {LANES.map(lane => {
+            const rs = rows.filter(r => lane.match(r.stage)).sort((a, b) => b.ra_rev - a.ra_rev);
+            const sum = rs.reduce((s, r) => s + r.ra_rev, 0);
+            return (
+              <div className={'lane' + (dropTarget === 'lane-' + lane.key ? ' dropon' : '')} key={lane.key} {...dropProps('lane-' + lane.key, lane.toStage)}>
+                <div className="lane-h">
+                  <span className="lane-t" style={{ color: `var(${lane.color})` }}>{lane.title}</span>
+                  <span className="lane-n">{rs.length}</span>
+                </div>
+                <div className="lane-hint">{lane.hint}</div>
+                <div className="lane-sum mono" style={{ color: `var(${lane.color})` }}>{rp(sum)}/mo risk-adj</div>
+                {rs.map(r => (
+                  <div className={'pcard' + (r.status === 'Killed' ? ' killed' : '') + (dragId === r.id ? ' dragging' : '')} key={r.id}
+                    style={{ borderTopColor: `var(${STCOLOR(r.stage)})` }} onClick={() => setOpenId(r.id)} {...dragProps(r)}>
+                    <div className="pcid mono">{r.id} · {r.stage_code}{r.rag_effective && <span className="rag" style={{ background: `var(${RAGV[r.rag_effective]})`, marginLeft: 6 }} />}{r.status === 'Killed' && <span className="killtag">killed</span>}</div>
+                    <div className="pcname">{r.name}</div>
+                    <div className="pcfoot">
+                      <span className="mono">{r.ra_rev > 0 ? rp(r.ra_rev) : r.pl_line === 'Enabler' ? 'enabler' : '—'}</span>
+                      <span className="pcfoot-r">
+                        {r.ms_total > 0 && <span className="mono" style={{ fontSize: 10, color: 'var(--ink-3)' }}>{r.ms_done}/{r.ms_total}</span>}
+                        {r.owner_name && r.owner_id && <Avatar name={r.owner_name} ownerId={r.owner_id} size={18} />}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                {rs.length === 0 && <div className="lane-empty">drop here</div>}
               </div>
             );
           })}

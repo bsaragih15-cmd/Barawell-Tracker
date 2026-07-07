@@ -64,6 +64,10 @@ Effort: S (<2h) · M (half-day) · L (1–2 days).
 
 ## Done
 
+### [P1·S] Drag-and-drop + 3-lane Execution board — 2026-07-07
+- Cards drag between the 5 Pipeline stage columns (drop = set stage, absolute).
+- New "Execution" tab: Idea (L1–L2) / Execute (L3–L4) / Done (L5) — a projection of the stage-gates (D14), drag between lanes writes the lane's canonical stage (L2/L4/L5). Lane rollups show count + risk-adj Rp/mo; cards show milestone progress + owner.
+
 ### [P1·S] Add / edit / kill initiative + owners — 2026-07-07
 - `0004_owners_and_register_lifecycle.sql`: formalises the ad-hoc live `pics` table + `initiatives.owner_id` FK, adds a `status` ('Active'/'Killed') column, and rebuilds `v_initiatives_scored` (now joins `owner_name`/`owner_is_lead`) and `v_coverage` (counts `status='Active'` only, so killing a lever drops its value from the bridge).
 - UI: "+ New initiative" modal (all scoring inputs, ID auto-assigned per bucket per rule 3 — scores compute in the view, no math in the client); "Edit inputs" from the drawer reuses the same form; owner assignment (PIC chips) in the drawer + owner avatars on pipeline/board cards and a Register column; kill/restore with a "show N killed" toggle. Verified: kill A2 → coverage 54%→47%, restore → 54%.

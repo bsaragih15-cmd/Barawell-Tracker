@@ -13,6 +13,14 @@ export async function moveStage(id: string, dir: number) {
   revalidatePath('/');
 }
 
+// Absolute stage set (drag-and-drop drops a card on a target column/lane).
+export async function setStage(id: string, stage: number) {
+  const sb = supabaseAdmin();
+  const next = Math.max(1, Math.min(5, Math.round(stage)));
+  await sb.from('initiatives').update({ stage: next, updated_at: now() }).eq('id', id);
+  revalidatePath('/');
+}
+
 // Setting a RAG is a manual override; clearing it (null) reverts to the
 // milestone-derived auto-RAG computed in v_initiatives_scored.
 export async function setRag(id: string, rag: 'Green' | 'Amber' | 'Red' | null) {
