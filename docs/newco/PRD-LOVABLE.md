@@ -10,6 +10,9 @@ Build a mobile-first D2C telehealth storefront for Indonesian women, modeled on 
 2. **Pil KB** — birth-control pill subscription with online doctor review and home delivery, auto-refill. Includes emergency contraception (Postpil, OWA — pharmacist-dispensable) as a quiet fast-checkout SKU.
 3. **Kulit (skin/acne)** — hormonal-acne-focused: topical tretinoin/azelaic acid and oral options via e-Rx, subscription refills, home delivery. Lowest price point, designed as the brand's low-CAC entry product; cross-sold from the Pil KB quiz (skin is a stated pill motivation).
 4. **Rambut (hair)** — female-pattern/postpartum hair loss: topical minoxidil + supplement bundle, subscription, home delivery, no clinic dependency.
+5. **Kesehatan Mental** — two tracks: **Cemas** (anti-anxiety: SSRI-class obat keras via e-Rx — legal; benzodiazepines/psikotropika are excluded from e-prescribing and must never appear) and **Tidur** (sleep: melatonin + sleep-hygiene program; prescription hypnotics like zolpidem are psikotropika — excluded). Both subscription + care-team follow-up; quiz includes severity/crisis screening that routes to human help, never a dead end.
+
+**Weight GLP-1 medication choice:** within the GLP-1 tier, users see a Wegovy vs Mounjaro comparison and mark a *preference* (chip, not cart); the doctor makes the final call. Ozempic is never shown on weight pages (BPOM indication is T2D-only). Med list is config-driven so oral semaglutide can be added on launch.
 
 The signature interaction is a **quiz-first funnel**: visitors never see a checkout before completing a free health assessment and doctor review. Language: **Bahasa Indonesia** (copy provided below in ID where it matters; elsewhere write natural, warm Indonesian — not translated English).
 
@@ -36,10 +39,13 @@ Brand name: use placeholder **"[Brand]"** everywhere; it will be find-replaced. 
 /pil-kb                 Birth control landing (incl. Postpil section)
 /kulit                  Skin/acne landing
 /rambut                 Hair landing
-/kuis/berat-badan       Assessment quiz (weight — routes GLP-1 vs oral tier)
+/kesehatan-mental       Mental health landing (tracks: /cemas, /tidur)
+/kuis/berat-badan       Assessment quiz (weight — routes GLP-1 vs oral tier; med preference step)
 /kuis/pil-kb            Assessment quiz (birth control)
 /kuis/kulit             Assessment quiz (skin)
 /kuis/rambut            Assessment quiz (hair)
+/kuis/cemas             Assessment quiz (anxiety — GAD-7-based + crisis screen)
+/kuis/tidur             Assessment quiz (sleep — ISI-based + crisis screen)
 /intake                 Post-quiz medical intake (auth required)
 /akun                   Subscriber portal (plan, refills, messages, orders)
 /checkout               Plan selection + prepay + payment
@@ -67,6 +73,9 @@ Brand name: use placeholder **"[Brand]"** everywhere; it will be find-replaced. 
 - Pil KB quiz: age, smoking status + age>35 combo (→ progestin-only routing), blood-pressure known?, migraine with aura, clot history, breastfeeding, current method, what matters most (skin/cramps/no-daily-pill…). "Skin" as top motivation → offer the Kulit quiz as an add-on at the end.
 - Kulit quiz (shorter, 8–10 q): concern, duration, current routine, pregnancy/planning (tretinoin contraindicated → azelaic routing), skin sensitivity, prior Rx use, photo upload (optional at quiz, required at intake).
 - Rambut quiz: pattern/onset, postpartum?, thyroid/anemia flags (→ suggest lab check messaging), current treatments, pregnancy (minoxidil routing), expectations question (sets honest timeline).
+- Cemas quiz: GAD-7 items + duration, triggers, current meds/therapy, pregnancy, **crisis screen** (self-harm ideation → immediate warm referral screen: 119 ext. 8 + partner psychologist; case flagged, never auto-rejected). Severe scores route to "konsultasi dulu" (doctor decides), mild scores may route to non-Rx program + counseling content.
+- Tidur quiz: ISI-style items, sleep pattern, caffeine/alcohol, shift work, snoring/apnea flags (→ clinic referral note), pregnancy, current sleep aids. Output: melatonin + sleep-hygiene program; copy must never promise prescription sleeping pills.
+- Weight quiz (GLP-1-eligible path) ends with a **medication preference step**: Wegovy vs Mounjaro comparison, single-select preference chip, "keputusan akhir oleh dokter" caption. Preference stored on the case for the reviewing doctor.
 - End screen: "Kamu kemungkinan cocok ✓ — buat akun untuk ditinjau dokter" → signup (phone/WhatsApp OTP preferred, email fallback). Persist quiz answers to the account.
 
 ### 4.3 Intake & doctor review
@@ -103,7 +112,9 @@ Stack guidance for Lovable: Supabase (Postgres + Auth + Storage) backend, React 
 
 1. **Never sell medication directly.** Every path to a drug goes through quiz → intake → doctor review. No "add to cart" on any medication. Med names on marketing pages carry: *"Obat keras. Hanya dengan resep dokter. Ketersediaan ditentukan oleh dokter setelah konsultasi."*
 2. **Injectables are never shipped.** Order type for GLP-1 = `clinic_pickup` only. Do not build a shipping option for them.
-3. **No Ozempic weight-loss marketing.** Only Wegovy/Mounjaro may appear on weight pages (BPOM weight indications). Ozempic must not appear in weight-loss copy at all.
+3. **No Ozempic weight-loss marketing.** Only Wegovy/Mounjaro may appear on weight pages (BPOM weight indications). Ozempic must not appear in weight-loss copy at all. The med-preference step is a preference, never a purchase.
+3b. **No psikotropika, ever.** Benzodiazepines, zolpidem and other psikotropika are excluded from telemedicine e-prescribing (PP 28/2024) — they must not appear in copy, quizzes, SKUs, or care-team playbooks. Cemas = SSRI-class obat keras only; Tidur = melatonin/non-controlled only.
+3c. **Crisis safety.** All mental-health surfaces carry the 119 ext. 8 help strip; self-harm flags trigger the referral screen and a flagged case for human follow-up.
 4. Footer on every page: operating clinic name + address, PSEF/partner-apotek identifiers (placeholders), "Layanan telemedicine sesuai UU 17/2023 & PP 28/2024" line, BPOM disclaimer.
 5. Telemedicine consent + privacy consent as explicit checkboxes with versioned text; store consent records.
 6. Honest subscription mechanics: clear renewal date pre-purchase, cancellation self-serve, refund policy page.
@@ -114,6 +125,9 @@ Stack guidance for Lovable: Supabase (Postgres + Auth + Storage) backend, React 
 - Pil KB: **Rp 149.000/bln** incl. delivery; 6-bln Rp 129.000/bln. Postpil one-off: **Rp 99.000** incl. same-day-capable delivery.
 - Kulit: **Rp 249.000/bln** (routine bundle); 3-bln Rp 219.000/bln.
 - Rambut: **Rp 299.000/bln** (minoxidil + supplement); 3-bln Rp 269.000/bln.
+- Cemas: **Rp 349.000/bln** (meds + monthly doctor check-in + messaging); 3-bln Rp 319.000/bln.
+- Tidur: **Rp 199.000/bln** (melatonin + program tidur); 3-bln Rp 179.000/bln.
+- GLP-1 med-level pricing: Wegovy-based program Rp 3.900.000/bln; Mounjaro-based Rp 4.400.000/bln (higher COGS); both dose-flat within their med.
 
 ## 10. Build order (milestones for Lovable)
 1. Design system + Home + all four landing pages (static, real copy).
