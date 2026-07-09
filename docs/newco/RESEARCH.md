@@ -47,7 +47,7 @@ A Hers-style women's brand is buildable in Indonesia today, but the shape is dic
 ## 5. Implications baked into the PRD
 
 1. New sister brand (women's), shared Barawell backend (doctors, apotek partners, ops).
-2. Two launch categories: **Program Berat Badan (GLP-1)** — subscription program with in-person dispense/administration nodes; **KB / Kesehatan Reproduksi (pill subscription)** — fully online, auto-refill.
+2. Four launch categories (decision 2026-07-09): **Program Berat Badan** with a GLP-1 tier (in-person dispense nodes) and an **oral tier** (metformin/orlistat + coaching, home-delivered — catches GLP-1-disqualified and price-sensitive demand, mirrors Hers' $69/mo oral kits); **Pil KB** (fully online, auto-refill, + Postpil OWA SKU); **Kulit** (hormonal acne — low-CAC entry product, cross-sold from the pill quiz); **Rambut** (minoxidil + supplement bundle). All non-GLP-1 categories are oral/topical → fully home-deliverable → zero clinic dependency.
 3. Funnel = quiz → account → intake → doctor review → plan + price reveal → prepay checkout → subscription portal.
 4. Compliance is a feature: BPOM-registered meds only, named klinik/apotek partners, no marketplace channel, no Ozempic weight-loss claims.
 5. Pricing hypothesis (validate): weight program **Rp 3.5–4.5jt/mo dose-flat**, minus ~10–15% on 3-month prepay; pill subscription **Rp 99–199rb/mo** delivered.
