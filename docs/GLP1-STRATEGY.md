@@ -34,14 +34,26 @@ G6 regulatory de-risk — PARALLEL; must clear before paid ad-scale.
 G5 cold-chain last-mile — needed before volume, not before the pilot (supply secured).
 ```
 
+## The brand: Dara — a women's-health platform (ForHers model)
+
+The standalone brand is **Dara** (Indonesian for "young woman"), reframed from a weight brand
+into a **women's-health platform**. **GLP-1 is the launch category**; birth control, mental
+health, skin follow once the platform + trust are proven. Positioning is **affluent-premium**:
+COGS Rp 2.7M at 20–30% margin ⇒ price ~Rp 3.4–3.9M/mo (premium, not mass). The trust layer is a
+reusable platform capability, not a one-off.
+
+**Website-first.** You don't drive demand to a site that can't convert an Rx purchase, so
+**G8 (the Dara site + trust) is built before G7 (TikTok/Shopee demand) scales** — encoded as a
+hard dependency (G7 → G8). Design handoff: `docs/DARA-WEBSITE-BRIEF.md` (modeled on Hers + Juniper).
+
 ## Register map (live in the tool)
 
-| ID | Role after the pivot | Owner | Stage |
-|----|----------------------|-------|-------|
-| **F4** | The program — broad, female-led, standalone brand, pilot-first. Gated by F6/G7/G8. | Andrew | Idea |
-| **G7** | Demand & content engine (the #1 bottleneck). Enabler — unlocks F4's pool, no double-count. | *unassigned* | Idea |
-| **G8** | Trust & clinical credibility (the #2 bottleneck). Enabler. | Andrew | Idea |
-| **F6** | Eligibility & safety screening; doubles as lead capture. | Andrew | Idea |
+| ID | Role | Owner | Stage |
+|----|------|-------|-------|
+| **F4** | Dara — GLP-1 metabolic program (the launch category). Gated by G8/G7/F6. | Andrew | Idea |
+| **G8** | **Dara website + trust layer — build FIRST.** The credible site + funnel + clinical trust. | Andrew | Idea |
+| **G7** | Demand & content engine (TikTok organic + Shopee). **Gated by G8** (website-first). Owner set. | Berthin | Idea |
+| **F6** | Eligibility & safety screening; doubles as lead capture (the assessment). | Andrew | Idea |
 | **F5** | Titration/adherence subscription — GLP-1 economics are *entirely* retention. | Jimmy | Idea |
 | **B5** | Companion side-effect bundle — cuts nausea churn + AOV. | Andrew | Idea |
 | **G6** | Regulatory de-risk before ad-scale (parallel, no longer gating the pilot). | Berthin | **Execute** |
@@ -49,14 +61,17 @@ G5 cold-chain last-mile — needed before volume, not before the pilot (supply s
 
 ## Open items (need a founder call / owner)
 
-- **Sub-brand name + identity** — blocks F4's funnel and G7's TikTok/Shopee handles. First move.
-- **G7 owner** — no one owns marketing/content yet; the #1 bottleneck can't be ownerless.
-- **Economics validation (D8, still HELD).** F4's pool is Rp 130M, but 300 patients × Rp 1.5–2M
-  = Rp 450–600M — a ~4× inconsistency — and branded COGS likely makes Rp 1.5–2M loss-leading.
-  Going female-broad also makes **cold CAC real** (the warm-base wedge is gone). Before revising
-  the pool or GLP-1 margin, resolve: realistic steady-state active patients, net price vs COGS,
-  and blended CAC across TikTok-organic/Shopee. **Pool numbers unchanged until this is settled.**
+- **Build the Dara site (G8)** — the current active workstream. Design brief ready
+  (`docs/DARA-WEBSITE-BRIEF.md`); next is brand identity + homepage + eligibility assessment.
+- **Availability checks** (deferred by founder): domain / IG / TikTok / Shopee handle for "Dara".
+- **Economics validation (D8/D21, still HELD).** Real price ≈ Rp 3.4–3.9M/mo (COGS Rp 2.7M @
+  20–30%); the earlier Rp 1.5–2M was below cost. Rp 130M pool ≈ ~36 patients at true price — a
+  credible year-1 steady state; 300 is the north-star (>Rp 1B/mo alone). GLP-1's 20–30% margin is
+  far below the model's global 55%, so the tool **overstates GLP-1 gross profit** — fix later with
+  a per-initiative margin field. **Pool numbers unchanged until validated.**
 - **Attribution (G1)** must be live before any paid Shopee spend, or CAC is blind.
+- **Platform expansion** (later): birth control + mental health widen the regulatory surface
+  (anxiety meds are prescribing-heavy / partly controlled) — GLP-1-first keeps the beachhead clean.
 - **G7/G8 milestones** — add dated milestones so they carry RAG like the rest of the chain.
 
 ## What's already done (migrations 0010–0011)
