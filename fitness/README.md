@@ -11,6 +11,13 @@ Same instrument philosophy as the Barawell pipeline in this repo: confidence-wei
 | `cockpit.html` | The instrument. Open it in any browser. Self-contained, no build, no server. |
 | `PLAN.md` | The task register — setup, the cut, and the race — with the honest read on periodization. |
 | `weekly-review.md` | Sunday review template (the cockpit computes most of it live). |
+| `SYNC.md` | Live app-sync runbook — Apple Health → Strava → Airtable, step by step. |
+
+## Live data spine (Airtable)
+
+An **Airtable base "Body Cockpit"** is the always-on system of record and phone-logging surface:
+👉 https://airtable.com/appxY2BIm3Yd89KkU — tables: Activities (Strava-fed), Daily Metrics, Weekly Review, Plan (seeded).
+Wire it up with **`SYNC.md`**.
 
 ## Run it
 
@@ -26,4 +33,4 @@ Open `cockpit.html` in a browser. First thing: click **Baseline & targets** and 
 
 ## Syncing your apps
 
-Live OAuth linking (Apple Health, Strava, Polar Flow, MyFitnessPal) has to be done in a normal interactive session, not here. The **Setup & Sync** tab documents the exact steps. Until then: weekly CSV export → paste into the Daily Log. The DB-backed, auto-syncing version is in `PLAN.md` under *Deferred*.
+See **`SYNC.md`** for the full runbook. Short version: make **Apple Health** the hub (Strava, Polar, MyFitnessPal, scale all write to it), then a single **Zapier** Zap pipes every new Strava activity into the Airtable **Activities** table automatically. Steps 1–2 (app authorizations) can only be done from your phone; the destination base and schema are already built.
