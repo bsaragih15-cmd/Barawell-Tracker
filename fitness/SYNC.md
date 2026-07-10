@@ -57,9 +57,8 @@ This is the "live" part. Build **one Zap** so every new Strava activity creates 
 
 > Tip: add a **Formatter by Zapier** step between trigger and action to divide metres→km and seconds→minutes cleanly.
 
-### Weight / calories (optional, same pattern)
-- **Withings scale** has a native Zapier trigger (**New Measurement**) → map to **Daily Metrics** (Weight kg, Body Fat %).
-- **MyFitnessPal** has no clean Zapier trigger; simplest is the weekly **Health Auto Export** (iOS app) → CSV → paste into Daily Metrics, or export → Zapier.
+### Weight / calories / body metrics → Route 2
+These live in **Apple Health**, which has no cloud API — so they need an on-device bridge, not a cloud Zap trigger. That's **Route 2**, fully documented in **`route2-healthexport.md`** with a tested parser (`zapier-healthexport-code.js`). Short version: *Health Auto Export* (iPhone) POSTs Apple Health JSON nightly → Zapier Catch Raw Hook + Code step → **Daily Metrics** table. MyFitnessPal calories/protein ride this same bridge (they write into Apple Health).
 
 ---
 

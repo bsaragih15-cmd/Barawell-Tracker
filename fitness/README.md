@@ -11,7 +11,9 @@ Same instrument philosophy as the Barawell pipeline in this repo: confidence-wei
 | `cockpit.html` | The instrument. Open it in any browser. Self-contained, no build, no server. |
 | `PLAN.md` | The task register — setup, the cut, and the race — with the honest read on periodization. |
 | `weekly-review.md` | Sunday review template (the cockpit computes most of it live). |
-| `SYNC.md` | Live app-sync runbook — Apple Health → Strava → Airtable, step by step. |
+| `SYNC.md` | Live app-sync runbook — the two data routes into the base. |
+| `route2-healthexport.md` | Apple Health → Airtable bridge (weight/BF/calories/sleep), step by step. |
+| `zapier-healthexport-code.js` | Tested Zapier Code step that parses Health Auto Export JSON and upserts daily rows. |
 
 ## Live data spine (Airtable)
 
