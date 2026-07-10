@@ -15,17 +15,26 @@ const FAQ = [
 export default function LandingBeratBadan() {
   return (
     <>
-      {/* Hero */}
-      <section className="dara-band">
-        <div className="dara-wrap" style={{ padding: '64px 20px 48px', maxWidth: 720 }}>
-          <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 600, letterSpacing: '0.04em', color: 'var(--text-meta)' }}>PROGRAM BERAT BADAN</p>
-          <h1 style={{ margin: 0, fontSize: 'var(--text-h1)' }}>Turun berat badan dengan pendampingan dokter — bukan sekadar obat.</h1>
-          <p style={{ margin: '16px 0 0', maxWidth: '52ch', fontSize: 'var(--text-body-lg)', color: 'var(--text-secondary)' }}>
-            Kuis 90 detik menentukan jalurmu: GLP-1 suntik mingguan atau program oral. Dokter meninjau, kamu lihat harga sebelum bayar.
-          </p>
-          <Link href="/dara/kuis/berat-badan" style={{ display: 'inline-block', marginTop: 24, textDecoration: 'none', background: 'var(--accent-action)', color: '#fff', fontWeight: 600, fontSize: 17, padding: '15px 28px', borderRadius: 'var(--radius-control)' }}>
-            Mulai konsultasi gratis
-          </Link>
+      {/* Hero — floating pen photography from the design package (Wegovy + Mounjaro
+          only; Ozempic imagery stays off weight surfaces per BPOM indication rules) */}
+      <section className="dara-band" style={{ overflow: 'hidden' }}>
+        <div className="dara-wrap" style={{ padding: '64px 20px 48px', maxWidth: 1100, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 32 }}>
+          <div style={{ flex: '1 1 380px', maxWidth: 720 }}>
+            <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 600, letterSpacing: '0.04em', color: 'var(--text-meta)' }}>PROGRAM BERAT BADAN</p>
+            <h1 style={{ margin: 0, fontSize: 'var(--text-h1)' }}>Turun berat badan dengan pendampingan dokter — bukan sekadar obat.</h1>
+            <p style={{ margin: '16px 0 0', maxWidth: '52ch', fontSize: 'var(--text-body-lg)', color: 'var(--text-secondary)' }}>
+              Kuis 90 detik menentukan jalurmu: GLP-1 suntik mingguan atau program oral. Dokter meninjau, kamu lihat harga sebelum bayar.
+            </p>
+            <Link href="/dara/kuis/berat-badan" style={{ display: 'inline-block', marginTop: 24, textDecoration: 'none', background: 'var(--accent-action)', color: '#fff', fontWeight: 600, fontSize: 17, padding: '15px 28px', borderRadius: 'var(--radius-control)' }}>
+              Mulai konsultasi gratis
+            </Link>
+          </div>
+          <div aria-hidden="true" style={{ flex: '0 1 260px', display: 'flex', justifyContent: 'center', gap: 18, minWidth: 200 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/dara/assets/pen-wegovy.png" alt="" style={{ width: '44%', maxWidth: 130, objectFit: 'contain', animation: 'dara-lp-float 6.5s ease-in-out infinite', filter: 'drop-shadow(-14px 22px 26px rgba(33,26,20,.22))' }} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/dara/assets/pen-mounjaro-cut.png" alt="" style={{ width: '44%', maxWidth: 130, objectFit: 'contain', animation: 'dara-lp-float 7.5s ease-in-out infinite', animationDelay: '0.8s', filter: 'drop-shadow(-14px 22px 26px rgba(33,26,20,.22))' }} />
+          </div>
         </div>
       </section>
 

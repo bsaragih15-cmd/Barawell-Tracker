@@ -111,6 +111,10 @@
   from { opacity: 0.01; transform: translateY(14px); }
   to { opacity: 1; transform: none; }
 }
+@keyframes dara-lp-float {
+  0%, 100% { transform: rotate(6deg) translateY(0); }
+  50% { transform: rotate(6deg) translateY(-10px); }
+}
 @keyframes dara-stepin {
   from { opacity: 0; transform: translateX(14px); }
   to { opacity: 1; transform: none; }

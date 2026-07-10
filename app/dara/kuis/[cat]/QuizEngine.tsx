@@ -224,8 +224,8 @@ export function QuizEngine({ category }: { category: QuizCategory }) {
           <H2 small>Ada preferensi obat?</H2>
           <p style={{ margin: 0, fontSize: 14, color: 'var(--text-secondary)' }}>Tandai preferensimu — keputusan akhir tetap oleh dokter setelah membaca jawabanmu.</p>
           <div style={{ display: 'grid', gap: 12 }}>
-            <MedicationCard name="Wegovy®" molecule="semaglutide" cadence="1× / minggu" results="hingga ±15%" priceLabel="Rp 3.900.000/bln" selected={medPref === 'wegovy'} onSelect={() => setMedPref('wegovy')} />
-            <MedicationCard name="Mounjaro®" molecule="tirzepatide" cadence="1× / minggu" results="hingga ±20%" priceLabel="Rp 4.400.000/bln" selected={medPref === 'mounjaro'} onSelect={() => setMedPref('mounjaro')} />
+            <MedicationCard name="Wegovy®" molecule="semaglutide" cadence="1× / minggu" results="hingga ±15%" priceLabel="Rp 3.900.000/bln" img="/dara/assets/pen-wegovy.png" selected={medPref === 'wegovy'} onSelect={() => setMedPref('wegovy')} />
+            <MedicationCard name="Mounjaro®" molecule="tirzepatide" cadence="1× / minggu" results="hingga ±20%" priceLabel="Rp 4.400.000/bln" img="/dara/assets/pen-mounjaro-cut.png" selected={medPref === 'mounjaro'} onSelect={() => setMedPref('mounjaro')} />
           </div>
           <Button size="lg" fullWidth onClick={() => { setAnswers({ conds, weight, height, bmi }); setStep(4); }}>
             {medPref ? 'Lanjut' : 'Lanjut tanpa preferensi'}

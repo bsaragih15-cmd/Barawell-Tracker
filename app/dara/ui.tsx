@@ -182,9 +182,9 @@ export function TierCard({ eyebrow, name, description, priceFrom, delivery, feat
 }
 
 /* ── MedicationCard — Wegovy/Mounjaro PREFERENCE chip, never a cart ─── */
-export function MedicationCard({ name, molecule, cadence, results, priceLabel, selected = false, onSelect, style }: {
+export function MedicationCard({ name, molecule, cadence, results, priceLabel, img, selected = false, onSelect, style }: {
   name: string; molecule: string; cadence: string; results: string; priceLabel: string;
-  selected?: boolean; onSelect?: () => void; style?: CSS;
+  img?: string; selected?: boolean; onSelect?: () => void; style?: CSS;
 }) {
   const [hover, setHover] = React.useState(false);
   const row = (label: string, value: string) => (
@@ -203,6 +203,12 @@ export function MedicationCard({ name, molecule, cadence, results, priceLabel, s
         borderRadius: 'var(--radius-card)', padding: 'var(--space-25)', display: 'flex', flexDirection: 'column', gap: 12, boxSizing: 'border-box',
         transition: 'border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out)', ...style,
       }}>
+      {img && (
+        <div style={{ height: 110, borderRadius: 10, overflow: 'hidden', background: 'var(--surface-card-tint)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={img} alt={`Pen ${name}`} style={{ maxHeight: '92%', maxWidth: '86%', objectFit: 'contain', transform: 'rotate(6deg)', filter: 'drop-shadow(-8px 12px 14px rgba(33,26,20,.18))' }} />
+        </div>
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
         <div>
           <p style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--text-primary)' }}>{name}</p>
