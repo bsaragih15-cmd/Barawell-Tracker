@@ -47,7 +47,7 @@ export default function DaraLayout({ children }: { children: ReactNode }) {
           <Link href="/dara" style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 600, color: 'var(--text-primary)', textDecoration: 'none', letterSpacing: '-0.015em' }}>
             Dara
           </Link>
-          <nav style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginLeft: 'auto' }} aria-label="Kategori">
+          <nav className="dara-nav" aria-label="Kategori">
             {NAV.map((n) => (
               <Link
                 key={n.href}

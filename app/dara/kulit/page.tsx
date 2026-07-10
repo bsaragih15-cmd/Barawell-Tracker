@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { TrustBar, FAQAccordion } from '../ui';
+import { TrustBar, FAQAccordion, StickyCta } from '../ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,6 +57,7 @@ export default function LandingKulit() {
           </div>
         </div>
       </section>
+      <StickyCta href="/dara/kuis/kulit" label="Mulai konsultasi — gratis" />
     </>
   );
 }

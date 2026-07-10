@@ -370,6 +370,33 @@ export function FAQAccordion({ items = [], style }: { items: { q: string; a: str
   );
 }
 
+/* ── StickyCta — mobile-only bottom bar (prototype landing pages).
+   With priceFrom it renders the berat-badan price-anchor variant;
+   without, a full-width CTA. Hidden ≥768px via .dara-sticky-cta. ────── */
+export function StickyCta({ href, label, priceFrom }: { href: string; label: string; priceFrom?: string }) {
+  return (
+    <div className="dara-sticky-cta">
+      {priceFrom && (
+        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-meta)' }}>mulai dari</span>
+          <span className="dara-mono-price" style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+            {priceFrom}<span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 400, color: 'var(--text-meta)' }}>/bln</span>
+          </span>
+        </div>
+      )}
+      <Link href={href} style={{
+        flex: 1, textDecoration: 'none', textAlign: 'center', whiteSpace: 'nowrap',
+        background: 'var(--accent-action)', color: 'var(--text-on-accent)',
+        fontFamily: 'var(--font-ui)', fontWeight: 600, fontSize: 17, lineHeight: 1.2,
+        padding: '15px 20px', minHeight: 52, borderRadius: 'var(--radius-control)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        {label}
+      </Link>
+    </div>
+  );
+}
+
 /* ── HelpStrip — crisis line, quiet, on every mental-health surface ─── */
 export function HelpStrip({ style }: { style?: CSS }) {
   return (

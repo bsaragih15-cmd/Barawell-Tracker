@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { TrustBar, FAQAccordion, HelpStrip } from '../ui';
+import { TrustBar, FAQAccordion, HelpStrip, StickyCta } from '../ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,6 +55,7 @@ export default function LandingMental() {
       </section>
 
       <HelpStrip />
+      <StickyCta href="/dara/kuis/cemas" label="Mulai asesmen — gratis" />
     </>
   );
 }

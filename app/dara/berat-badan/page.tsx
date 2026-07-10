@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { TrustBar, TierCard, FAQAccordion } from '../ui';
+import { TrustBar, TierCard, FAQAccordion, StickyCta } from '../ui';
 import { MedPrefPreview } from './MedPrefPreview';
 
 export const dynamic = 'force-dynamic';
@@ -98,6 +98,7 @@ export default function LandingBeratBadan() {
           </div>
         </div>
       </section>
+      <StickyCta href="/dara/kuis/berat-badan" label="Cek kelayakanku — gratis" priceFrom="Rp 3,9jt" />
     </>
   );
 }

@@ -51,7 +51,7 @@ export default function DaraHome() {
       <section>
         <div className="dara-wrap" style={{ padding: '40px 20px 48px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <CatCard feature href="/dara/berat-badan" title="Berat badan" blurb="Turun berat dengan dokter di sisimu — jalur GLP-1 atau oral, bukan sekadar obat." price="Rp 749.000" />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 }}>
+          <div className="dara-cat-grid">
             <CatCard href="/dara/pil-kb" title="Pil KB" blurb="Diantar ke rumah dengan resep dokter — tanpa antre, tanpa canggung." price="Rp 149.000" />
             <CatCard href="/dara/kulit" title="Kulit" blurb="Formula resep untuk jerawat & flek." price="Rp 249.000" />
             <CatCard href="/dara/rambut" title="Rambut" blurb="Hentikan rontok lebih awal." price="Rp 299.000" />

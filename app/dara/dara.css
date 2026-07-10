@@ -132,3 +132,29 @@
 .dara-wrap { max-width: var(--measure-page); margin: 0 auto; padding: 0 20px; }
 .dara-band { background: var(--surface-band); }
 .dara-mono-price { font-family: var(--font-display); font-feature-settings: var(--numeric-tabular); }
+
+/* ── Mobile layer (from the handoff's mobile screens, 470×920 frame) ── */
+
+/* Header nav: horizontally scrollable chip row on phones, never wraps */
+.dara-nav {
+  display: flex; gap: 4px; margin-left: auto;
+  overflow-x: auto; white-space: nowrap; scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.dara-nav::-webkit-scrollbar { display: none; }
+
+/* Home category grid: 2×2 on mobile (prototype HomeScreen), 4-across wide */
+.dara-cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (min-width: 900px) { .dara-cat-grid { grid-template-columns: repeat(4, 1fr); } }
+
+/* Sticky bottom CTA bar: the prototype's signature mobile pattern.
+   Desktop has inline CTAs everywhere, so the bar is mobile-only. */
+.dara-sticky-cta {
+  position: sticky; bottom: 0; z-index: 15;
+  padding: 10px 16px calc(14px + env(safe-area-inset-bottom));
+  background: var(--surface-page);
+  border-top: var(--border-hairline);
+  box-shadow: 0 -6px 20px rgba(33, 26, 20, 0.06);
+  display: flex; align-items: center; gap: 12px;
+}
+@media (min-width: 768px) { .dara-sticky-cta { display: none; } }
