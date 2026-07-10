@@ -1,0 +1,667 @@
+<title>Body Cockpit — Cut + 70.3</title>
+<style>
+:root{
+  --canvas:#F6F8FA;--surface:#FFFFFF;--ink:#141922;--ink-2:#5B6472;--ink-3:#8A94A3;
+  --line:#E6E9EE;--line-2:#EEF1F5;--accent:#0F7A5A;--accent-soft:#E7F3EF;--accent-ink:#0B5C43;
+  --fat:#C0872E;--fat-soft:#F6ECD9;         /* composition track = amber (adipose) */
+  --swim:#2E7DB0;--bike:#0F7A5A;--run:#B4573B;/* three disciplines */
+  --rag-g:#1F8A5B;--rag-a:#C0872E;--rag-r:#C0392B;--rag-gs:#E4F2EB;--rag-as:#F6ECD9;--rag-rs:#F7E4E1;
+  --hatch-a:#D9C9A6;--hatch-b:#E7DCC2;
+  --shadow:0 1px 2px rgba(20,25,34,.04),0 4px 16px rgba(20,25,34,.06);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --canvas:#0E1218;--surface:#161C24;--ink:#EDF1F6;--ink-2:#9AA4B2;--ink-3:#6B7482;
+    --line:#242C36;--line-2:#1D242D;--accent:#37B58C;--accent-soft:#15302A;--accent-ink:#8CE0C6;
+    --fat:#D9A84E;--fat-soft:#2C2413;--swim:#5AA6D0;--bike:#37B58C;--run:#D67A5E;
+    --rag-gs:#12281F;--rag-as:#2C2413;--rag-rs:#2E1614;
+    --hatch-a:#3A3320;--hatch-b:#2A2618;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 18px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --canvas:#0E1218;--surface:#161C24;--ink:#EDF1F6;--ink-2:#9AA4B2;--ink-3:#6B7482;
+  --line:#242C36;--line-2:#1D242D;--accent:#37B58C;--accent-soft:#15302A;--accent-ink:#8CE0C6;
+  --fat:#D9A84E;--fat-soft:#2C2413;--swim:#5AA6D0;--bike:#37B58C;--run:#D67A5E;
+  --rag-gs:#12281F;--rag-as:#2C2413;--rag-rs:#2E1614;--hatch-a:#3A3320;--hatch-b:#2A2618;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 18px rgba(0,0,0,.4);
+}
+:root[data-theme="light"]{
+  --canvas:#F6F8FA;--surface:#FFFFFF;--ink:#141922;--ink-2:#5B6472;--ink-3:#8A94A3;
+  --line:#E6E9EE;--line-2:#EEF1F5;--accent:#0F7A5A;--accent-soft:#E7F3EF;--accent-ink:#0B5C43;
+  --fat:#C0872E;--fat-soft:#F6ECD9;--swim:#2E7DB0;--bike:#0F7A5A;--run:#B4573B;
+  --rag-gs:#E4F2EB;--rag-as:#F6ECD9;--rag-rs:#F7E4E1;--hatch-a:#D9C9A6;--hatch-b:#E7DCC2;
+  --shadow:0 1px 2px rgba(20,25,34,.04),0 4px 16px rgba(20,25,34,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--canvas);color:var(--ink);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.mono{font-family:'JetBrains Mono',ui-monospace,'SF Mono',monospace;font-variant-numeric:tabular-nums}
+.eyebrow{font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select{font-family:inherit}
+a{color:var(--accent-ink)}
+.wrap{max-width:1120px;margin:0 auto;padding:22px 24px 72px}
+/* top bar */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand h1{font-size:15px;font-weight:700;letter-spacing:-.01em}
+.brand .sub{font-size:11px;color:var(--ink-3)}
+.topright{display:flex;align-items:center;gap:10px}
+.btn-s{font-size:11.5px;font-weight:600;color:var(--ink-2);border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 12px}
+.btn-s:hover{color:var(--ink);border-color:var(--ink-3);box-shadow:var(--shadow)}
+.countdown{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ink-2)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+/* heroes */
+.heroes{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.hero{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 22px;box-shadow:var(--shadow)}
+.hero-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:15px;gap:12px}
+.hero-top .lead{font-size:15px;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+.hero-top .sub{font-size:11.5px;color:var(--ink-2);margin-top:3px;max-width:34ch}
+.big{font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1;text-align:right;white-space:nowrap}
+.big small{display:block;font-size:10.5px;color:var(--ink-3);font-weight:500;margin-top:4px;text-align:right}
+.bridge{position:relative;height:42px;border-radius:10px;background:var(--line-2);overflow:hidden;border:1px solid var(--line);display:flex}
+.seg{height:100%;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.seg.done{background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 78%,#fff),var(--accent))}
+.seg.done.fat{background:linear-gradient(180deg,color-mix(in srgb,var(--fat) 78%,#fff),var(--fat))}
+.seg.togo{background:repeating-linear-gradient(45deg,var(--hatch-a),var(--hatch-a) 5px,var(--hatch-b) 5px,var(--hatch-b) 10px)}
+.seg.sw{background:linear-gradient(180deg,color-mix(in srgb,var(--swim) 80%,#fff),var(--swim))}
+.seg.bk{background:linear-gradient(180deg,color-mix(in srgb,var(--bike) 80%,#fff),var(--bike))}
+.seg.rn{background:linear-gradient(180deg,color-mix(in srgb,var(--run) 80%,#fff),var(--run))}
+.gate{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink);opacity:.55}
+.g-labels{display:flex;justify-content:space-between;margin-top:8px;font-size:10.5px;color:var(--ink-3)}
+.legend{display:flex;gap:16px;margin-top:12px;font-size:11px;color:var(--ink-2);flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:6px}
+.sw-c{width:11px;height:11px;border-radius:3px;display:inline-block}
+/* conflict banner */
+.conflict{background:var(--rag-as);border:1px solid color-mix(in srgb,var(--rag-a) 35%,transparent);border-radius:12px;padding:13px 16px;margin-bottom:14px;display:flex;gap:12px;align-items:flex-start}
+.conflict .ic{font-size:15px;line-height:1.2}
+.conflict .txt{font-size:12px;color:var(--ink);line-height:1.5}
+.conflict .txt b{color:var(--rag-a)}
+/* tiles */
+.tiles{display:grid;grid-template-columns:repeat(6,1fr);gap:11px;margin-bottom:18px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 14px}
+.tile .t{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+.tile .k{font-size:19px;font-weight:600;margin-top:7px;letter-spacing:-.01em}
+.tile .d{font-size:10.5px;color:var(--ink-3);margin-top:3px}
+.tile.accent{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 30%,transparent)}
+.tile.accent .k{color:var(--accent-ink)}
+/* tabs */
+.tabs{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap}
+.tabset{display:flex;gap:2px;background:var(--line-2);padding:3px;border-radius:10px;flex-wrap:wrap}
+.tab{font-size:12px;font-weight:500;padding:6px 13px;border-radius:7px;color:var(--ink-2)}
+.tab.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.tabs .meta{font-size:11px;color:var(--ink-3)}
+/* panel */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.panel-h{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.panel-h h3{font-size:13px;font-weight:600}
+.panel-h .note{font-size:11px;color:var(--ink-3)}
+.tblwrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:560px}
+thead th{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+thead th.num{text-align:right}
+tbody td{padding:9px 14px;border-bottom:1px solid var(--line-2);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:color-mix(in srgb,var(--line-2) 50%,transparent)}
+.num{text-align:right;white-space:nowrap}
+.id{font-size:11px;font-weight:600;color:var(--ink-3)}
+.nm{font-weight:500}.nm .drv{font-size:10.5px;color:var(--ink-3);font-weight:400;margin-top:1px}
+.stg{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:6px;background:var(--line-2);color:var(--ink-2);white-space:nowrap}
+.rag{display:inline-block;width:9px;height:9px;border-radius:50%}
+.rag.g{background:var(--rag-g)}.rag.a{background:var(--rag-a)}.rag.r{background:var(--rag-r)}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.pill .cd{width:6px;height:6px;border-radius:50%}
+.gatebtn{font-size:11px;font-weight:600;color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);background:var(--accent-soft);border-radius:6px;padding:4px 9px;white-space:nowrap}
+.gatebtn:hover{background:var(--accent);color:#fff}
+/* log form */
+.logform{display:grid;grid-template-columns:repeat(7,1fr) auto;gap:8px;padding:14px 18px;border-bottom:1px solid var(--line);align-items:end}
+.f{display:flex;flex-direction:column;gap:4px}
+.f label{font-size:9.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3)}
+.f input,.f select{border:1px solid var(--line);border-radius:7px;background:var(--canvas);color:var(--ink);padding:7px 8px;font-size:12px;outline:none;width:100%}
+.f input:focus,.f select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.addbtn{font-size:12px;font-weight:600;color:#fff;background:var(--accent);border-radius:8px;padding:8px 14px;white-space:nowrap;height:34px}
+.addbtn:hover{background:var(--accent-ink)}
+/* charts */
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.chart{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:16px 18px}
+.chart h3{font-size:12px;font-weight:600;margin-bottom:2px}
+.chart .cl{font-size:11px;color:var(--ink-3);margin-bottom:10px}
+.chart svg{width:100%;height:190px;display:block;overflow:visible}
+.empty{padding:40px 18px;text-align:center;color:var(--ink-3);font-size:12px}
+/* weekly review */
+.review{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.rev-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:16px 18px}
+.rev-card h3{font-size:12px;font-weight:600;margin-bottom:12px;display:flex;justify-content:space-between}
+.metric{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line-2);font-size:12px}
+.metric:last-child{border-bottom:none}
+.metric .l{color:var(--ink-2)}
+.metric .v{font-weight:600}
+.metric .v .sub{font-size:10.5px;color:var(--ink-3);font-weight:400;margin-left:6px}
+.verdict{font-size:12px;line-height:1.55;color:var(--ink-2)}
+.verdict b{color:var(--ink)}
+/* setup / sync */
+.setup{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.step{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--line-2)}
+.step:last-child{border-bottom:none}
+.step .n{flex:0 0 22px;height:22px;border-radius:6px;background:var(--accent-soft);color:var(--accent-ink);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.step .b{font-size:12px;line-height:1.5}
+.step .b b{font-weight:600}
+.step .b code{font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--line-2);padding:1px 5px;border-radius:4px}
+/* modal */
+.scrim{position:fixed;inset:0;background:rgba(20,25,34,.4);opacity:0;pointer-events:none;transition:.2s;z-index:40}
+.scrim.on{opacity:1;pointer-events:auto}
+.modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.98);width:640px;max-width:94vw;max-height:90vh;overflow-y:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 48px rgba(0,0,0,.3);z-index:50;opacity:0;pointer-events:none;transition:.2s}
+.modal.on{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+.modal-h{display:flex;justify-content:space-between;align-items:flex-start;padding:18px 22px 14px;border-bottom:1px solid var(--line)}
+.modal-h h3{font-size:15px;font-weight:600}
+.modal-h .x{width:28px;height:28px;border-radius:7px;color:var(--ink-3);font-size:18px;display:flex;align-items:center;justify-content:center}
+.modal-h .x:hover{background:var(--line-2)}
+.modal-b{padding:18px 22px}
+.modal-note{font-size:11.5px;color:var(--ink-2);line-height:1.5;margin-bottom:16px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:13px 16px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;font-weight:500;color:var(--ink-2)}
+.field .inp{display:flex;align-items:center;border:1px solid var(--line);border-radius:8px;background:var(--canvas);overflow:hidden}
+.field .inp:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.field .inp input,.field .inp select{flex:1;min-width:0;border:none;background:none;outline:none;padding:8px 10px;font-size:13px;color:var(--ink)}
+.field .inp .u{font-size:10px;color:var(--ink-3);padding:0 10px;white-space:nowrap}
+.modal-f{display:flex;justify-content:space-between;gap:8px;padding:15px 22px 20px;border-top:1px solid var(--line);align-items:center}
+.btn-ghost{font-size:12px;font-weight:600;color:var(--ink-2);border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 16px}
+.btn-accent{font-size:12px;font-weight:600;color:#fff;background:var(--accent);border-radius:8px;padding:8px 18px}
+.btn-accent:hover{background:var(--accent-ink)}
+.grp-t{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin:18px 0 10px}
+.grp-t:first-child{margin-top:0}
+@media(max-width:880px){
+  .heroes{grid-template-columns:1fr}.tiles{grid-template-columns:repeat(3,1fr)}
+  .charts,.review,.setup{grid-template-columns:1fr}
+  .logform{grid-template-columns:repeat(3,1fr)}.fgrid{grid-template-columns:1fr}
+}
+</style>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <h1>Body Cockpit</h1>
+      <span class="sub">Cut to single-digit BF · 70.3 in October — one instrument, two tracks</span>
+    </div>
+    <div class="topright">
+      <div class="countdown"><span class="dot"></span><span id="cd" class="mono">—</span></div>
+      <button class="btn-s" id="themeBtn">◐ Theme</button>
+      <button class="btn-s" id="setupBtn">Baseline & targets</button>
+    </div>
+  </div>
+
+  <!-- HERO BRIDGES -->
+  <div class="heroes">
+    <div class="hero">
+      <div class="hero-top">
+        <div>
+          <div class="lead" id="compLead">Composition — set your baseline</div>
+          <div class="sub" id="compSub">Lean mass held constant; fat mass is the variable you're driving down.</div>
+        </div>
+        <div class="big" id="compBig">—<small>body fat now</small></div>
+      </div>
+      <div class="bridge" id="compBridge"></div>
+      <div class="g-labels"><span id="compL">start</span><span id="compR">target</span></div>
+      <div class="legend">
+        <span><i class="sw-c" style="background:var(--fat)"></i> Fat shed</span>
+        <span><i class="sw-c" style="background:var(--hatch-a)"></i> To go</span>
+        <span><i class="sw-c" style="background:var(--ink);opacity:.55"></i> Target BF</span>
+      </div>
+    </div>
+
+    <div class="hero">
+      <div class="hero-top">
+        <div>
+          <div class="lead" id="raceLead">Race readiness — set your longest sessions</div>
+          <div class="sub" id="raceSub">Readiness = your longest recent session vs. the 70.3 leg it must cover.</div>
+        </div>
+        <div class="big" id="raceBig">—<small>race-ready</small></div>
+      </div>
+      <div class="bridge" id="raceBridge"></div>
+      <div class="g-labels"><span>0%</span><span id="raceR">race day</span></div>
+      <div class="legend">
+        <span><i class="sw-c" style="background:var(--swim)"></i> Swim 1.9k</span>
+        <span><i class="sw-c" style="background:var(--bike)"></i> Bike 90k</span>
+        <span><i class="sw-c" style="background:var(--run)"></i> Run 21.1k</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="conflict" id="conflict" style="display:none">
+    <div class="ic">⚠︎</div>
+    <div class="txt" id="conflictTxt"></div>
+  </div>
+
+  <!-- TILES -->
+  <div class="tiles" id="tiles"></div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tabset" id="tabset"></div>
+    <div class="meta" id="tabMeta"></div>
+  </div>
+  <div id="view"></div>
+</div>
+
+<!-- SETUP MODAL -->
+<div class="scrim" id="scrim"></div>
+<div class="modal" id="modal">
+  <div class="modal-h">
+    <div><div class="eyebrow">Baseline & targets</div><h3>Your model inputs</h3></div>
+    <button class="x" id="closeModal">×</button>
+  </div>
+  <div class="modal-b">
+    <div class="modal-note">All figures live only in your browser (localStorage). Set your true baseline once, then update the current weight/BF as you weigh in. Everything on the cockpit recomputes from these.</div>
+    <div class="grp-t">Athlete</div>
+    <div class="fgrid">
+      <div class="field"><label>Sex</label><div class="inp"><select id="i_sex"><option value="m">Male</option><option value="f">Female</option></select></div></div>
+      <div class="field"><label>Age</label><div class="inp"><input id="i_age" type="number"><span class="u">yr</span></div></div>
+      <div class="field"><label>Height</label><div class="inp"><input id="i_height" type="number"><span class="u">cm</span></div></div>
+      <div class="field"><label>Activity multiplier</label><div class="inp"><select id="i_act">
+        <option value="1.35">1.35 — light (desk + easy sessions)</option>
+        <option value="1.5">1.50 — moderate (5–6 sessions/wk)</option>
+        <option value="1.65">1.65 — high (heavy tri volume)</option>
+      </select></div></div>
+    </div>
+    <div class="grp-t">Composition — Track A</div>
+    <div class="fgrid">
+      <div class="field"><label>Start weight</label><div class="inp"><input id="i_w0" type="number" step="0.1"><span class="u">kg</span></div></div>
+      <div class="field"><label>Start body fat</label><div class="inp"><input id="i_bf0" type="number" step="0.1"><span class="u">%</span></div></div>
+      <div class="field"><label>Current weight</label><div class="inp"><input id="i_w" type="number" step="0.1"><span class="u">kg</span></div></div>
+      <div class="field"><label>Current body fat</label><div class="inp"><input id="i_bf" type="number" step="0.1"><span class="u">%</span></div></div>
+      <div class="field"><label>Target body fat</label><div class="inp"><input id="i_bft" type="number" step="0.1"><span class="u">%</span></div></div>
+      <div class="field"><label>Loss rate</label><div class="inp"><input id="i_rate" type="number" step="0.05"><span class="u">kg/wk</span></div></div>
+    </div>
+    <div class="grp-t">Race — Track B</div>
+    <div class="fgrid">
+      <div class="field"><label>Race name</label><div class="inp"><input id="i_race" type="text"></div></div>
+      <div class="field"><label>Race date</label><div class="inp"><input id="i_rdate" type="date"></div></div>
+      <div class="field"><label>Longest swim (recent)</label><div class="inp"><input id="i_swim" type="number" step="50"><span class="u">m</span></div></div>
+      <div class="field"><label>Longest ride (recent)</label><div class="inp"><input id="i_bike" type="number" step="1"><span class="u">km</span></div></div>
+      <div class="field"><label>Longest run (recent)</label><div class="inp"><input id="i_run" type="number" step="0.5"><span class="u">km</span></div></div>
+      <div class="field"><label>Weekly training target</label><div class="inp"><input id="i_htgt" type="number" step="0.5"><span class="u">hr/wk</span></div></div>
+    </div>
+  </div>
+  <div class="modal-f">
+    <button class="btn-ghost" id="resetBtn">Reset to demo</button>
+    <button class="btn-accent" id="saveBtn">Save & recompute</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const KP="bt_profile_v1", KL="bt_logs_v1", KI="bt_init_v1", KT="bt_theme_v1";
+const RACE={swim:1900,bike:90,run:21.1}; // meters, km, km
+const KCAL_PER_KG=7700;
+
+const DEMO={
+  sex:"m",age:32,height:175,act:1.5,
+  w0:80,bf0:22,w:80,bf:22,bft:9,rate:0.55,
+  race:"Bali 70.3 (sample)",rdate:"2026-10-18",
+  swim:900,bike:45,run:12,htgt:9
+};
+// ---- state ----
+let P=load(KP,structuredClone(DEMO));
+let LOGS=load(KL,[]);
+let IOV=load(KI,{});
+function load(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v??d;}catch(e){return d;}}
+function save(){localStorage.setItem(KP,JSON.stringify(P));localStorage.setItem(KL,JSON.stringify(LOGS));localStorage.setItem(KI,JSON.stringify(IOV));}
+
+// ---- date helpers (no Date.now nonsense — real dates fine in browser) ----
+const DAY=864e5;
+function today(){const d=new Date();return d.toISOString().slice(0,10);}
+function daysBetween(a,b){return Math.round((new Date(b)-new Date(a))/DAY);}
+
+// ---- ENGINE ----
+function compute(){
+  const s={};
+  // composition
+  const leanNow=P.w*(1-P.bf/100);
+  s.lean=leanNow;
+  s.targetW=leanNow/(1-P.bft/100);      // hold lean, hit target BF
+  s.fatNow=P.w-s.targetW>0?P.w*(P.bf/100):P.w*(P.bf/100);
+  s.fatMassNow=P.w*(P.bf/100);
+  s.fatMassTarget=s.targetW*(P.bft/100);
+  s.fatToLose=Math.max(0,P.w-s.targetW);
+  s.fatToLose_fromStart=Math.max(0,P.w0*(1-P.bf0/100)/(1-P.bft/100)); // not used directly
+  // progress across the BF gap (pct points)
+  s.gapPts=Math.max(0.1,P.bf0-P.bft);
+  s.donePts=Math.min(s.gapPts,Math.max(0,P.bf0-P.bf));
+  s.togoPts=Math.max(0,P.bf-P.bft);
+  s.compPct=Math.round(100*s.donePts/s.gapPts);
+  // BMR/TDEE (Mifflin-St Jeor)
+  s.bmr=Math.round(10*P.w+6.25*P.height-5*P.age+(P.sex==="m"?5:-161));
+  s.tdee=Math.round(s.bmr*P.act);
+  s.deficit=Math.round(P.rate*KCAL_PER_KG/7);
+  s.kcalTarget=s.tdee-s.deficit;
+  s.protein=Math.round(2.0*leanNow);     // g/day, ~2g per kg lean
+  s.weeksToTarget=s.fatToLose>0?Math.ceil(s.fatToLose/P.rate):0;
+  // race
+  const dtr=daysBetween(today(),P.rdate);
+  s.daysToRace=dtr; s.weeksToRace=Math.max(0,Math.round(dtr/7));
+  s.rSwim=Math.min(1,(P.swim||0)/RACE.swim);
+  s.rBike=Math.min(1,(P.bike||0)/RACE.bike);
+  s.rRun =Math.min(1,(P.run||0)/RACE.run);
+  s.ready=Math.round(100*(s.rSwim+s.rBike+s.rRun)/3);
+  // required build rate: reach ~110% of race distance in long sessions by 2wk taper
+  const buildWks=Math.max(1,s.weeksToRace-2);
+  s.needSwim=Math.max(0,(RACE.swim-(P.swim||0))/buildWks);
+  s.needBike=Math.max(0,(RACE.bike*1.05-(P.bike||0))/buildWks);
+  s.needRun=Math.max(0,(RACE.run-(P.run||0))/buildWks);
+  // logs rollups (last 7 / prev 7)
+  const sorted=[...LOGS].sort((a,b)=>a.date<b.date?1:-1);
+  s.last=sorted[0]||null;
+  const t=new Date(today());
+  const inWin=(d,lo,hi)=>{const x=daysBetween(d,today());return x>=lo&&x<hi;};
+  const w0=LOGS.filter(l=>inWin(l.date,0,7)), w1=LOGS.filter(l=>inWin(l.date,7,14));
+  const avg=(arr,f)=>{const v=arr.map(f).filter(x=>x!=null&&!isNaN(x));return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;};
+  const sum=(arr,f)=>arr.map(f).map(x=>+x||0).reduce((a,b)=>a+b,0);
+  s.wk={
+    kcal:avg(w0,l=>l.kcal), kcalPrev:avg(w1,l=>l.kcal),
+    prot:avg(w0,l=>l.protein),
+    wt:avg(w0,l=>l.weight), wtPrev:avg(w1,l=>l.weight),
+    hrs:sum(w0,l=>l.hours), hrsPrev:sum(w1,l=>l.hours),
+    days:w0.length, logged:w0.filter(l=>l.kcal).length
+  };
+  s.wk.wtDelta=(s.wk.wt!=null&&s.wk.wtPrev!=null)?s.wk.wt-s.wk.wtPrev:null;
+  // conflict logic
+  s.underfuel=(s.wk.kcal!=null && s.wk.kcal < s.tdee-900) && s.wk.hrs>6;
+  s.deficitVsRace = s.weeksToRace<=8 && s.deficit>=600;
+  return s;
+}
+
+// ---- RENDER ----
+const RAGCOLOR={g:"var(--rag-g)",a:"var(--rag-a)",r:"var(--rag-r)"};
+function fmt(n,d=0){return n==null||isNaN(n)?"—":(+n).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});}
+
+function renderHeroes(s){
+  // composition bridge
+  $("#compBig").innerHTML=`${fmt(P.bf,1)}%<small>body fat now</small>`;
+  $("#compLead").textContent=`Composition — ${s.compPct}% of the way to ${fmt(P.bft,0)}%`;
+  $("#compSub").textContent=`${fmt(s.fatToLose,1)} kg of fat to shed · lean mass ${fmt(s.lean,1)} kg held · ~${s.weeksToTarget} wks at ${fmt(P.rate,2)} kg/wk`;
+  $("#compL").textContent=`start ${fmt(P.bf0,1)}%`;
+  $("#compR").textContent=`target ${fmt(P.bft,0)}%`;
+  const donePct=100*s.donePts/s.gapPts, togo=100-donePct;
+  $("#compBridge").innerHTML=`<div class="seg done fat" style="width:${donePct}%"></div><div class="seg togo" style="width:${togo}%"></div><div class="gate" style="right:0"></div>`;
+  // race bridge — each leg contributes 1/3 of width, filled by readiness
+  $("#raceBig").innerHTML=`${s.ready}%<small>race-ready</small>`;
+  $("#raceLead").textContent=`Race readiness — ${s.ready}% across three legs`;
+  $("#raceSub").textContent=`${P.race} · ${s.weeksToRace} wks out · longest: ${fmt(P.swim,0)}m / ${fmt(P.bike,0)}k / ${fmt(P.run,1)}k`;
+  $("#raceR").textContent=`race day · ${s.weeksToRace}w`;
+  const third=100/3;
+  const seg=(cls,r)=>`<div class="seg ${cls}" style="width:${third*r}%"></div><div class="seg togo" style="width:${third*(1-r)}%"></div>`;
+  $("#raceBridge").innerHTML=seg("sw",s.rSwim)+seg("bk",s.rBike)+seg("rn",s.rRun)+`<div class="gate" style="right:0"></div>`;
+  // countdown
+  $("#cd").textContent=`${s.daysToRace}d to race · ${s.weeksToTarget}w to BF goal`;
+  // conflict
+  const c=$("#conflict");
+  if(s.deficitVsRace||s.underfuel){
+    c.style.display="flex";
+    let msg=`<b>The two goals are pulling against each other.</b> `;
+    if(s.deficitVsRace) msg+=`You're ${s.weeksToRace} weeks from race day carrying a ${fmt(s.deficit,0)} kcal/day deficit. Deep deficits inside the final build blunt adaptation and recovery. `;
+    if(s.underfuel) msg+=`Last 7 days you averaged ${fmt(s.wk.kcal,0)} kcal on ${fmt(s.wk.hrs,1)} training hours — likely under-fuelled. `;
+    msg+=`Recommended: <b>periodize</b> — hold the cut now, shift to maintenance (${fmt(s.tdee,0)} kcal) for the peak build weeks, resume the deficit after the race.`;
+    $("#conflictTxt").innerHTML=msg;
+  } else c.style.display="none";
+}
+
+function renderTiles(s){
+  const T=[
+    {t:"Weight now",k:fmt(P.w,1)+" kg",d:`start ${fmt(P.w0,1)} · target ${fmt(s.targetW,1)}`},
+    {t:"Body fat",k:fmt(P.bf,1)+"%",d:`${s.compPct}% to ${fmt(P.bft,0)}%`,accent:true},
+    {t:"Calorie target",k:fmt(s.kcalTarget,0),d:`TDEE ${fmt(s.tdee,0)} − ${fmt(s.deficit,0)}`},
+    {t:"Protein floor",k:fmt(s.protein,0)+" g",d:"≈2 g/kg lean"},
+    {t:"Weekly volume",k:fmt(s.wk.hrs,1)+" h",d:`target ${fmt(P.htgt,1)} h/wk`,accent:s.wk.hrs>=P.htgt},
+    {t:"Race in",k:s.weeksToRace+" wk",d:P.rdate}
+  ];
+  $("#tiles").innerHTML=T.map(x=>`<div class="tile ${x.accent?'accent':''}"><div class="t">${x.t}</div><div class="k mono">${x.k}</div><div class="d">${x.d}</div></div>`).join("");
+}
+
+// ---- initiatives (the plan, stage-gated) ----
+const INITS=[
+  {id:"S1",track:"Setup",name:"Baseline capture",drv:"DEXA or 7-site + AM weight protocol",stage:5,rag:"g"},
+  {id:"S2",track:"Setup",name:"App sync live",drv:"Apple Health ⇄ Strava ⇄ MFP ⇄ Polar Flow",stage:2,rag:"a"},
+  {id:"A1",track:"Cut",name:"Hold a clean deficit",drv:`kcal target + protein floor, 6d/wk logged`,stage:4,rag:"g"},
+  {id:"A2",track:"Cut",name:"Lean-mass protection",drv:"2× full-body lifts/wk during cut",stage:3,rag:"a"},
+  {id:"A3",track:"Cut",name:"Periodize around race",drv:"maintenance in peak build, resume after",stage:2,rag:"a"},
+  {id:"B1",track:"Race",name:"Aerobic base — Z2 engine",drv:"80/20 easy volume, HR-capped on Polar",stage:4,rag:"g"},
+  {id:"B2",track:"Race",name:"Long ride build → 90k+",drv:"progressive weekend long ride",stage:3,rag:"a"},
+  {id:"B3",track:"Race",name:"Long run build → 18–21k",drv:"+1–1.5k/wk, brick off the bike",stage:3,rag:"a"},
+  {id:"B4",track:"Race",name:"Open-water swim → 1.9k",drv:"continuous 1.9k, sighting practice",stage:2,rag:"r"},
+  {id:"B5",track:"Race",name:"Race-week taper & fuelling",drv:"carb load, 60–90g carb/hr plan",stage:1,rag:"a"},
+];
+const STAGES=["","L1 Idea","L2 Scoping","L3 Building","L4 In train","L5 Locked"];
+function initState(i){const o=IOV[i.id]||{};return {stage:o.stage??i.stage,rag:o.rag??i.rag};}
+
+function renderPlan(){
+  const rows=INITS.map(i=>{
+    const st=initState(i);
+    return `<tr>
+      <td class="id">${i.id}</td>
+      <td class="nm">${i.name}<div class="drv">${i.drv}</div></td>
+      <td><span class="pill" style="background:var(--line-2)"><span class="cd" style="background:${i.track==='Race'?'var(--bike)':i.track==='Cut'?'var(--fat)':'var(--ink-3)'}"></span>${i.track}</span></td>
+      <td><span class="stg">${STAGES[st.stage]}</span></td>
+      <td style="text-align:center"><span class="rag ${st.rag}" title="RAG"></span></td>
+      <td class="num"><button class="gatebtn" data-adv="${i.id}">${st.stage<5?'Advance ▸':'Locked'}</button></td>
+    </tr>`;
+  }).join("");
+  return `<div class="panel">
+    <div class="panel-h"><h3>Plan — 10 initiatives across setup, cut & race</h3><span class="note">Advance a gate as work hardens · RAG = status</span></div>
+    <div class="tblwrap"><table>
+      <thead><tr><th>ID</th><th>Initiative</th><th>Track</th><th>Stage</th><th style="text-align:center">RAG</th><th class="num">Gate</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div></div>`;
+}
+
+function renderLog(){
+  const t=today();
+  const rows=[...LOGS].sort((a,b)=>a.date<b.date?1:-1).slice(0,30).map((l,idx)=>`<tr>
+    <td class="mono">${l.date}</td>
+    <td class="num mono">${l.weight?fmt(l.weight,1):"—"}</td>
+    <td class="num mono">${l.bf?fmt(l.bf,1):"—"}</td>
+    <td class="num mono">${l.kcal?fmt(l.kcal,0):"—"}</td>
+    <td class="num mono">${l.protein?fmt(l.protein,0):"—"}</td>
+    <td>${l.sport&&l.sport!=="—"?`<span class="pill" style="background:var(--line-2)">${l.sport}</span>`:"—"}</td>
+    <td class="num mono">${l.hours?fmt(l.hours,1):"—"}</td>
+    <td style="text-align:right"><button class="btn-s" data-del="${l.id}" style="padding:3px 8px">del</button></td>
+  </tr>`).join("");
+  return `<div class="panel">
+    <div class="logform">
+      <div class="f"><label>Date</label><input id="l_date" type="date" value="${t}"></div>
+      <div class="f"><label>Weight kg</label><input id="l_w" type="number" step="0.1"></div>
+      <div class="f"><label>BF %</label><input id="l_bf" type="number" step="0.1"></div>
+      <div class="f"><label>kcal</label><input id="l_k" type="number" step="10"></div>
+      <div class="f"><label>Protein g</label><input id="l_p" type="number" step="1"></div>
+      <div class="f"><label>Sport</label><select id="l_s"><option>—</option><option>Swim</option><option>Bike</option><option>Run</option><option>Brick</option><option>Strength</option><option>Other</option></select></div>
+      <div class="f"><label>Hours</label><input id="l_h" type="number" step="0.25"></div>
+      <button class="addbtn" id="l_add">Log day</button>
+    </div>
+    ${LOGS.length?`<div class="tblwrap"><table>
+      <thead><tr><th>Date</th><th class="num">Wt</th><th class="num">BF</th><th class="num">kcal</th><th class="num">Prot</th><th>Sport</th><th class="num">Hrs</th><th></th></tr></thead>
+      <tbody>${rows}</tbody></table></div>`:`<div class="empty">No entries yet. Log your first day above — weight in the morning, calories + protein from MyFitnessPal, training hours from Strava/Polar.</div>`}
+  </div>`;
+}
+
+function sparkline(data,accessor,color,fmtd=1){
+  const pts=data.map(d=>({x:d.date,y:accessor(d)})).filter(p=>p.y!=null&&!isNaN(p.y)).sort((a,b)=>a.x<b.x?-1:1);
+  if(pts.length<2) return `<div class="empty" style="padding:60px 0">Need ≥2 logged points to draw a trend.</div>`;
+  const W=100,H=100,pad=6;
+  const ys=pts.map(p=>+p.y),ymin=Math.min(...ys),ymax=Math.max(...ys),yr=(ymax-ymin)||1;
+  const X=i=>pad+(W-2*pad)*i/(pts.length-1);
+  const Y=v=>pad+(H-2*pad)*(1-(v-ymin)/yr);
+  const line=pts.map((p,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(p.y).toFixed(1)}`).join(" ");
+  const area=`${line} L${X(pts.length-1).toFixed(1)},${H-pad} L${X(0).toFixed(1)},${H-pad} Z`;
+  const last=pts[pts.length-1];
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <defs><linearGradient id="g_${color.replace(/\W/g,'')}" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="${color}" stop-opacity=".22"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+    <line x1="${pad}" y1="${Y(ymin).toFixed(1)}" x2="${W-pad}" y2="${Y(ymin).toFixed(1)}" stroke="var(--line)" stroke-width=".5"/>
+    <path d="${area}" fill="url(#g_${color.replace(/\W/g,'')})"/>
+    <path d="${line}" fill="none" stroke="${color}" stroke-width="1.6" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+    <circle cx="${X(pts.length-1).toFixed(1)}" cy="${Y(last.y).toFixed(1)}" r="2.4" fill="${color}"/>
+    <text x="${X(pts.length-1).toFixed(1)}" y="${Y(last.y)-4}" font-size="7" fill="var(--ink-2)" text-anchor="end" font-family="monospace">${fmt(last.y,fmtd)}</text>
+  </svg>`;
+}
+function weeklyBars(){
+  // last 8 weeks training hours
+  const buckets={};
+  LOGS.forEach(l=>{const wk=Math.floor(daysBetween(l.date,today())/7);if(wk>=0&&wk<8)buckets[wk]=(buckets[wk]||0)+(+l.hours||0);});
+  const arr=[];for(let i=7;i>=0;i--)arr.push({wk:i,h:buckets[i]||0});
+  const max=Math.max(P.htgt,...arr.map(a=>a.h),1);
+  return `<svg viewBox="0 0 100 100" preserveAspectRatio="none">
+    ${arr.map((a,i)=>{const bw=100/8*0.6,gap=100/8;const x=i*gap+gap*0.2;const h=(a.h/max)*88;const y=94-h;
+      return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1" fill="${a.wk===0?'var(--bike)':'color-mix(in srgb,var(--bike) 45%,transparent)'}"/>`;}).join("")}
+    <line x1="0" y1="${(94-(P.htgt/max)*88).toFixed(1)}" x2="100" y2="${(94-(P.htgt/max)*88).toFixed(1)}" stroke="var(--rag-a)" stroke-width=".7" stroke-dasharray="2,2"/>
+  </svg>`;
+}
+function renderTrajectory(){
+  return `<div class="charts">
+    <div class="chart"><h3>Weight trend</h3><div class="cl">Morning weigh-ins · toward ${fmt(compute().targetW,1)} kg</div>${sparkline(LOGS,l=>l.weight,"var(--fat)",1)}</div>
+    <div class="chart"><h3>Body fat %</h3><div class="cl">Log estimates weekly (scale/calipers/DEXA)</div>${sparkline(LOGS,l=>l.bf,"var(--accent)",1)}</div>
+    <div class="chart"><h3>Calorie intake</h3><div class="cl">Daily kcal vs target ${fmt(compute().kcalTarget,0)}</div>${sparkline(LOGS,l=>l.kcal,"var(--run)",0)}</div>
+    <div class="chart"><h3>Weekly training hours</h3><div class="cl">Last 8 weeks · amber line = ${fmt(P.htgt,1)} h target</div>${weeklyBars()}</div>
+  </div>`;
+}
+
+function renderReview(){
+  const s=compute();
+  const arrow=(d,goodDown=true)=>d==null?"":`<span class="sub" style="color:${(goodDown?d<0:d>0)?'var(--rag-g)':'var(--rag-r)'}">${d>0?'▲':'▼'} ${fmt(Math.abs(d),2)}</span>`;
+  const adh=s.wk.days?Math.round(100*s.wk.logged/7):0;
+  return `<div class="review">
+    <div class="rev-card">
+      <h3>This week — Composition <span class="sub" style="color:var(--ink-3);font-weight:400">last 7 days</span></h3>
+      <div class="metric"><span class="l">Avg weight</span><span class="v mono">${fmt(s.wk.wt,1)} kg ${arrow(s.wk.wtDelta)}</span></div>
+      <div class="metric"><span class="l">Avg intake</span><span class="v mono">${fmt(s.wk.kcal,0)} kcal<span class="sub">tgt ${fmt(s.kcalTarget,0)}</span></span></div>
+      <div class="metric"><span class="l">Avg protein</span><span class="v mono">${fmt(s.wk.prot,0)} g<span class="sub">floor ${fmt(s.protein,0)}</span></span></div>
+      <div class="metric"><span class="l">Logging adherence</span><span class="v mono">${adh}%<span class="sub">${s.wk.logged}/7 days</span></span></div>
+      <div class="metric"><span class="l">Est. weekly deficit</span><span class="v mono">${s.wk.kcal!=null?fmt((s.tdee-s.wk.kcal)*7,0):'—'} kcal</span></div>
+    </div>
+    <div class="rev-card">
+      <h3>This week — Race <span class="sub" style="color:var(--ink-3);font-weight:400">${s.weeksToRace}w out</span></h3>
+      <div class="metric"><span class="l">Training volume</span><span class="v mono">${fmt(s.wk.hrs,1)} h<span class="sub">tgt ${fmt(P.htgt,1)}</span></span></div>
+      <div class="metric"><span class="l">Swim gap → 1.9k</span><span class="v mono">${fmt(RACE.swim-P.swim,0)} m<span class="sub">+${fmt(s.needSwim,0)}/wk</span></span></div>
+      <div class="metric"><span class="l">Bike gap → 90k</span><span class="v mono">${fmt(RACE.bike-P.bike,0)} km<span class="sub">+${fmt(s.needBike,1)}/wk</span></span></div>
+      <div class="metric"><span class="l">Run gap → 21.1k</span><span class="v mono">${fmt(RACE.run-P.run,1)} km<span class="sub">+${fmt(s.needRun,1)}/wk</span></span></div>
+      <div class="metric"><span class="l">Overall readiness</span><span class="v mono">${s.ready}%</span></div>
+    </div>
+    <div class="rev-card" style="grid-column:1/-1">
+      <h3>So-what — the honest read</h3>
+      <div class="verdict">${verdict(s)}</div>
+    </div>
+  </div>`;
+}
+function verdict(s){
+  let out=[];
+  // composition
+  if(s.wk.wtDelta!=null){
+    if(s.wk.wtDelta<-0.9) out.push(`<b>Cutting too hard.</b> Weight fell ${fmt(-s.wk.wtDelta,1)} kg wk/wk — above ~${fmt(P.w*0.01,1)} kg risks lean-mass loss. Add ~150–250 kcal.`);
+    else if(s.wk.wtDelta>0.1) out.push(`<b>No deficit landing.</b> Weight up ${fmt(s.wk.wtDelta,1)} kg — tighten logging or trim ${fmt(300,0)} kcal.`);
+    else out.push(`<b>Cut is on rails.</b> ~${fmt(-s.wk.wtDelta,2)} kg/wk trend — sustainable, keeps lean mass.`);
+  } else out.push(`<b>Log ≥2 weeks</b> of morning weight to read the composition trend.`);
+  // race
+  const worst=[["swim",s.rSwim],["bike",s.rBike],["run",s.rRun]].sort((a,b)=>a[1]-b[1])[0];
+  out.push(`<b>${worst[0][0].toUpperCase()+worst[0].slice(1)} is the limiter</b> at ${Math.round(worst[1]*100)}% of race distance — bias the next block there.`);
+  if(s.deficitVsRace) out.push(`With ${s.weeksToRace} weeks out, <b>protect the build over the cut</b>: move to maintenance, bank the fat loss for after the race.`);
+  return out.join(" ");
+}
+
+function renderSetup(){
+  return `<div class="setup">
+    <div class="panel"><div class="panel-h"><h3>Connect your apps</h3><span class="note">do this in a normal (interactive) session</span></div>
+    <div style="padding:6px 18px 14px">
+      <div class="step"><div class="n">1</div><div class="b"><b>Apple Health as the hub.</b> On iPhone, let <b>Strava</b>, <b>Polar Flow</b>, and <b>MyFitnessPal</b> write to Apple Health (each app → Settings → Health → enable categories: Body Mass, Body Fat %, Active Energy, Workouts, Dietary Energy, Protein, Heart Rate).</div></div>
+      <div class="step"><div class="n">2</div><div class="b"><b>Polar → training + HR.</b> Polar Flow → Settings → Connect → Apple Health / Strava. Your HR-zone work flows through automatically.</div></div>
+      <div class="step"><div class="n">3</div><div class="b"><b>Strava → the endurance ledger.</b> Swim/bike/run distance & duration land here; it also holds the longest-session records this cockpit's readiness bar reads.</div></div>
+      <div class="step"><div class="n">4</div><div class="b"><b>Export → this cockpit.</b> Weekly, use <code>Health Auto Export</code> (iOS) to CSV, or Strava's bulk export. Paste the numbers into the <b>Log</b> tab, or wire a Zapier flow (Strava → this tracker) once the DB version is live.</div></div>
+      <div class="step"><div class="n">5</div><div class="b"><b>Body-fat truth source.</b> Bioimpedance scale daily for trend; a <b>DEXA every 4–6 weeks</b> to re-anchor the real number. Log the DEXA reading as your BF baseline.</div></div>
+    </div></div>
+    <div class="panel"><div class="panel-h"><h3>How this instrument works</h3></div>
+    <div style="padding:6px 18px 16px">
+      <div class="step"><div class="n">A</div><div class="b"><b>Two bridges, one screen.</b> Left = fat you've shed vs. fat to go. Right = readiness across the three legs. The <b>amber banner</b> fires when the cut and the build collide.</div></div>
+      <div class="step"><div class="n">B</div><div class="b"><b>Lean mass is the constant.</b> Target weight is computed by holding your lean mass and solving for target BF — so the goal is fat loss, not scale weight.</div></div>
+      <div class="step"><div class="n">C</div><div class="b"><b>Everything recomputes from Baseline.</b> Update current weight/BF after each weigh-in; TDEE, calorie target, protein floor, timelines and readiness all follow.</div></div>
+      <div class="step"><div class="n">D</div><div class="b"><b>Run the weekly review every Sunday.</b> The <b>Weekly Review</b> tab writes the so-what for you: too-hard cut, stalled loss, the limiter discipline, periodization call.</div></div>
+      <div class="step"><div class="n">E</div><div class="b"><b>Data lives in your browser.</b> Nothing leaves this page. Use <b>Export</b> below to back up.</div></div>
+      <div style="margin-top:14px;display:flex;gap:8px"><button class="btn-s" id="expBtn">⭳ Export JSON</button><label class="btn-s" style="cursor:pointer">⭱ Import JSON<input id="impFile" type="file" accept="application/json" style="display:none"></label></div>
+    </div></div>
+  </div>`;
+}
+
+// ---- tabs wiring ----
+const TABS=[["review","Weekly Review"],["log","Daily Log"],["traj","Trajectory"],["plan","Plan"],["setup","Setup & Sync"]];
+let TAB="review";
+function renderView(){
+  const s=compute();
+  $("#tabset").innerHTML=TABS.map(([k,l])=>`<button class="tab ${k===TAB?'on':''}" data-tab="${k}">${l}</button>`).join("");
+  const meta={review:"Run this every Sunday",log:"Weight AM · food & training from your apps",traj:`${LOGS.length} entries logged`,plan:"10 initiatives",setup:"Connect once, review weekly"}[TAB];
+  $("#tabMeta").textContent=meta;
+  const v=$("#view");
+  if(TAB==="review")v.innerHTML=renderReview();
+  else if(TAB==="log")v.innerHTML=renderLog();
+  else if(TAB==="traj")v.innerHTML=renderTrajectory();
+  else if(TAB==="plan")v.innerHTML=renderPlan();
+  else v.innerHTML=renderSetup();
+  wireView();
+}
+function wireView(){
+  $$("[data-tab]").forEach(b=>b.onclick=()=>{TAB=b.dataset.tab;renderView();});
+  const add=$("#l_add");
+  if(add)add.onclick=()=>{
+    const e={id:Math.random().toString(36).slice(2),date:$("#l_date").value||today(),
+      weight:+$("#l_w").value||null,bf:+$("#l_bf").value||null,kcal:+$("#l_k").value||null,
+      protein:+$("#l_p").value||null,sport:$("#l_s").value,hours:+$("#l_h").value||null};
+    if(!e.weight&&!e.kcal&&!e.hours){alert("Log at least a weight, calories, or training hours.");return;}
+    LOGS=LOGS.filter(l=>l.date!==e.date||l.sport!==e.sport); // replace same date+sport
+    LOGS.push(e);
+    // auto-advance current weight/bf if this is the latest date
+    const latest=[...LOGS].sort((a,b)=>a.date<b.date?1:-1)[0];
+    if(latest.date===e.date){if(e.weight)P.w=e.weight;if(e.bf)P.bf=e.bf;}
+    save();renderAll();
+  };
+  $$("[data-del]").forEach(b=>b.onclick=()=>{LOGS=LOGS.filter(l=>l.id!==b.dataset.del);save();renderAll();});
+  $$("[data-adv]").forEach(b=>b.onclick=()=>{const id=b.dataset.adv;const cur=initState(INITS.find(i=>i.id===id));const ns=Math.min(5,cur.stage+1);IOV[id]={...IOV[id],stage:ns};save();renderView();});
+  const exp=$("#expBtn");if(exp)exp.onclick=exportData;
+  const imp=$("#impFile");if(imp)imp.onchange=importData;
+}
+
+// ---- modal ----
+function openModal(){
+  const set=(id,v)=>$(id).value=v;
+  set("#i_sex",P.sex);set("#i_age",P.age);set("#i_height",P.height);set("#i_act",P.act);
+  set("#i_w0",P.w0);set("#i_bf0",P.bf0);set("#i_w",P.w);set("#i_bf",P.bf);set("#i_bft",P.bft);set("#i_rate",P.rate);
+  set("#i_race",P.race);set("#i_rdate",P.rdate);set("#i_swim",P.swim);set("#i_bike",P.bike);set("#i_run",P.run);set("#i_htgt",P.htgt);
+  $("#scrim").classList.add("on");$("#modal").classList.add("on");
+}
+function closeModal(){$("#scrim").classList.remove("on");$("#modal").classList.remove("on");}
+$("#setupBtn").onclick=openModal;$("#closeModal").onclick=closeModal;$("#scrim").onclick=closeModal;
+$("#saveBtn").onclick=()=>{
+  const g=id=>$(id).value;
+  P={sex:g("#i_sex"),age:+g("#i_age"),height:+g("#i_height"),act:+g("#i_act"),
+    w0:+g("#i_w0"),bf0:+g("#i_bf0"),w:+g("#i_w"),bf:+g("#i_bf"),bft:+g("#i_bft"),rate:+g("#i_rate"),
+    race:g("#i_race"),rdate:g("#i_rdate"),swim:+g("#i_swim"),bike:+g("#i_bike"),run:+g("#i_run"),htgt:+g("#i_htgt")};
+  save();closeModal();renderAll();
+};
+$("#resetBtn").onclick=()=>{if(confirm("Reset baseline to demo values? Your logs stay.")){P=structuredClone(DEMO);save();openModal();renderAll();}};
+
+// ---- theme ----
+function applyTheme(t){document.documentElement.setAttribute("data-theme",t);localStorage.setItem(KT,t);}
+$("#themeBtn").onclick=()=>{const cur=document.documentElement.getAttribute("data-theme")||(matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light");applyTheme(cur==="dark"?"light":"dark");};
+const savedT=localStorage.getItem(KT);if(savedT)applyTheme(savedT);
+
+// ---- export/import ----
+function exportData(){
+  const blob=new Blob([JSON.stringify({P,LOGS,IOV},null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="body-cockpit-backup.json";a.click();
+}
+function importData(e){
+  const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(d.P)P=d.P;if(d.LOGS)LOGS=d.LOGS;if(d.IOV)IOV=d.IOV;save();renderAll();alert("Imported.");}catch(x){alert("Bad file.");}};
+  r.readAsText(f);
+}
+
+// ---- master render ----
+function renderAll(){const s=compute();renderHeroes(s);renderTiles(s);renderView();}
+renderAll();
+</script>
