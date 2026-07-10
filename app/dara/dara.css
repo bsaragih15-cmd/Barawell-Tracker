@@ -1,0 +1,134 @@
+/* Dara design tokens — ported verbatim from the design handoff (public/dara/tokens).
+   Scoped under .dara so the cockpit's ledger theme is untouched. */
+.dara {
+  /* — Color — */
+  --dara-canvas: #FAF7F2;
+  --dara-ink: #211A14;
+  --dara-terracotta: #C4553B;
+  --dara-terracotta-deep: #A84731;
+  --dara-sage: #7E8F6E;
+  --dara-sage-deep: #5E6E50;
+  --dara-blush: #F2E3DA;
+  --dara-oat: #EFE9DF;
+  --dara-line: #E5DDD2;
+  --dara-ink-soft: #57493D;
+  --dara-ink-faint: #837567;
+  --dara-error: #B3362B;
+  --dara-info: #3F5E78;
+  --dara-terracotta-tint: #F8E9E4;
+  --dara-sage-tint: #E9EDE3;
+  --dara-info-tint: #E4EAF0;
+  --dara-error-tint: #F7E5E2;
+
+  --surface-page: var(--dara-canvas);
+  --surface-card: #FFFFFF;
+  --surface-card-tint: var(--dara-oat);
+  --surface-band: var(--dara-blush);
+  --text-primary: var(--dara-ink);
+  --text-secondary: var(--dara-ink-soft);
+  --text-meta: var(--dara-ink-faint);
+  --text-on-accent: #FFFFFF;
+  --accent-action: var(--dara-terracotta);
+  --accent-action-hover: var(--dara-terracotta-deep);
+
+  /* — Type (families injected by next/font in layout) — */
+  --text-hero: clamp(2.5rem, 1.75rem + 3.2vw, 3.5rem);
+  --text-h1: clamp(2rem, 1.55rem + 1.9vw, 2.625rem);
+  --text-h2: clamp(1.5rem, 1.32rem + 0.8vw, 1.75rem);
+  --text-h3: 1.25rem;
+  --text-body-lg: 1.0625rem;
+  --text-body: 1rem;
+  --text-small: 0.875rem;
+  --text-caption: 0.8125rem;
+  --leading-display: 1.08;
+  --leading-heading: 1.2;
+  --leading-body: 1.6;
+  --weight-display: 550;
+  --tracking-display: -0.01em;
+  --numeric-tabular: "tnum" 1, "lnum" 1;
+
+  /* — Space / radius / border / shadow — */
+  --space-05: 4px; --space-1: 8px; --space-15: 12px; --space-2: 16px;
+  --space-25: 20px; --space-3: 24px; --space-4: 32px; --space-5: 40px;
+  --space-6: 48px; --space-8: 64px; --space-10: 80px; --space-12: 96px;
+  --radius-control: 12px;
+  --radius-card: 16px;
+  --radius-pill: 999px;
+  --measure-page: 1100px;
+  --measure-prose: 62ch;
+  --border-hairline: 1px solid var(--dara-line);
+  --shadow-card: 0 1px 2px rgba(33, 26, 20, 0.05);
+  --shadow-raised: 0 2px 8px rgba(33, 26, 20, 0.07);
+  --tap-target-min: 44px;
+
+  /* — Motion — */
+  --ease-out: cubic-bezier(0.22, 0.68, 0.32, 1);
+  --dur-fast: 150ms;
+  --dur-base: 200ms;
+  --dur-slow: 250ms;
+  --focus-ring: 2px solid var(--dara-terracotta);
+  --focus-offset: 2px;
+
+  background: var(--surface-page);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.dara a {
+  color: var(--dara-terracotta);
+  text-decoration: underline;
+  text-decoration-color: rgba(196, 85, 59, 0.35);
+  text-underline-offset: 2px;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.dara a:hover { color: var(--dara-terracotta-deep); text-decoration-color: currentColor; }
+.dara :focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); border-radius: 4px; }
+.dara ::selection { background: var(--dara-blush); }
+
+.dara h1, .dara h2, .dara h3 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  letter-spacing: var(--tracking-display);
+  line-height: var(--leading-heading);
+}
+
+/* Scroll-reveal (progressive enhancement) */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .dara section {
+      animation: dara-rise 1 both;
+      animation-timeline: view();
+      animation-range: entry 5% entry 38%;
+    }
+  }
+}
+@keyframes dara-rise {
+  from { opacity: 0.01; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes dara-stepin {
+  from { opacity: 0; transform: translateX(14px); }
+  to { opacity: 1; transform: none; }
+}
+.dara-lift { transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out); }
+@media (hover: hover) {
+  .dara-lift:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(33, 26, 20, 0.07); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dara *, .dara *::before, .dara *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Layout helpers used across Dara pages */
+.dara-wrap { max-width: var(--measure-page); margin: 0 auto; padding: 0 20px; }
+.dara-band { background: var(--surface-band); }
+.dara-mono-price { font-family: var(--font-display); font-feature-settings: var(--numeric-tabular); }
