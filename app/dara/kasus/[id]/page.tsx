@@ -4,6 +4,9 @@ import { StatusChip, HelpStrip } from '../../ui';
 import { PlanCheckout } from './PlanCheckout';
 
 export const dynamic = 'force-dynamic';
+// The case page must always reflect the live DB row — a doctor may update the
+// case out-of-band, and patients reopen this link from WhatsApp for days.
+export const fetchCache = 'force-no-store';
 
 const CAT_LABEL: Record<string, string> = {
   bb: 'Program Berat Badan', kb: 'Pil KB', kulit: 'Kulit', rambut: 'Rambut', cemas: 'Program Cemas', tidur: 'Program Tidur',

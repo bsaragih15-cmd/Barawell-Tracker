@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase/server';
 import { adminDecide } from '../actions';
 
 export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
 
 /* Ops console — unbranded, utilitarian, table-first (per design brief §5).
    Guarded by ?key=<DARA_ADMIN_KEY>. Server-rendered forms + server actions. */
