@@ -1,0 +1,38 @@
+<!-- @dsCard group="Components" viewport="700x620" name="Content" subtitle="FAQ accordion · article card with medical byline · footer" -->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+<script src="../../ds-loader.js"></script>
+</head>
+<body style="margin:0;padding:20px;box-sizing:border-box">
+<div id="root"></div>
+<script type="text/babel" data-presets="react-classic">
+window.__dsReady.then((NS) => {
+const { FAQAccordion, ArticleCard } = NS;
+function Demo() {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 24, alignItems: "start" }}>
+      <ArticleCard
+        category="Kontrasepsi"
+        title="Memilih pil KB pertamamu"
+        excerpt="Perbedaan pil kombinasi dan pil progestin, plus cara memulai dengan aman."
+        reviewer="dr. Ratna Wijaya"
+      />
+      <FAQAccordion items={[
+        { q: "Apakah obatnya aman?", a: "Semua obat terdaftar BPOM dan hanya diresepkan bila dokter menilai aman untukmu. Kamu bisa bertanya kapan saja lewat pesan." },
+        { q: "Bagaimana kerahasiaan paketku?", a: "Paket dikirim dengan nama pengirim netral — tidak ada label kesehatan di luar kemasan." },
+        { q: "Bisakah aku berhenti kapan saja?", a: "Bisa. Tidak ada kontrak; kamu bisa menjeda atau berhenti dari halaman akunmu sebelum tanggal perpanjangan." },
+      ]} />
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<Demo />);
+});
+</script>
+</body>
+</html>

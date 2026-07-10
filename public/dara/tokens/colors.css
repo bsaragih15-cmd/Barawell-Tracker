@@ -1,0 +1,45 @@
+/* Dara color tokens.
+   Rule: large fields of calm neutrals; color appears as INTENT
+   (act = terracotta, confirm = sage, warn = error/info) — never decoration. */
+:root {
+  /* — Base palette — */
+  --dara-canvas: #FAF7F2;        /* warm paper — page background */
+  --dara-ink: #211A14;           /* deep espresso — primary text */
+  --dara-terracotta: #C4553B;    /* primary accent — CTAs, active states ONLY */
+  --dara-terracotta-deep: #A84731; /* hover/press on terracotta */
+  --dara-sage: #7E8F6E;          /* success, "approved", supply meters */
+  --dara-sage-deep: #5E6E50;     /* sage text on light tints (AA) */
+  --dara-blush: #F2E3DA;         /* section bands */
+  --dara-oat: #EFE9DF;           /* passive cards, footer */
+  --dara-line: #E5DDD2;          /* 1px borders — preferred over shadows */
+
+  /* — Ink steps — */
+  --dara-ink-soft: #57493D;      /* secondary text */
+  --dara-ink-faint: #837567;     /* meta, captions (18px+ or bold only) */
+
+  /* — Functional — */
+  --dara-error: #B3362B;
+  --dara-info: #3F5E78;
+
+  /* — Tints (backgrounds for intent, always pair with -deep text) — */
+  --dara-terracotta-tint: #F8E9E4;
+  --dara-sage-tint: #E9EDE3;
+  --dara-info-tint: #E4EAF0;
+  --dara-error-tint: #F7E5E2;
+
+  /* — Semantic aliases — */
+  --surface-page: var(--dara-canvas);
+  --surface-card: #FFFFFF;               /* interactive/elevated cards, inputs */
+  --surface-card-tint: var(--dara-oat);  /* passive info cards */
+  --surface-band: var(--dara-blush);     /* alternating landing-page bands */
+  --text-primary: var(--dara-ink);
+  --text-secondary: var(--dara-ink-soft);
+  --text-meta: var(--dara-ink-faint);
+  --text-on-accent: #FFFFFF;
+  --accent-action: var(--dara-terracotta);
+  --accent-action-hover: var(--dara-terracotta-deep);
+  --accent-positive: var(--dara-sage);
+  --color-error: var(--dara-error);
+  --color-info: var(--dara-info);
+  --border-color: var(--dara-line);
+}
