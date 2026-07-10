@@ -1,0 +1,5 @@
+/* Dara webfonts.
+   No licensed binaries were provided — loaded from Google Fonts CDN.
+   Display serif: Source Serif 4 (the "not a pharmacy" signal).
+   UI/body: Inter (tabular numerals for prices). */
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600;700&display=swap');

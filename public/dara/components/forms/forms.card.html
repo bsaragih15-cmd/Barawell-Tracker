@@ -1,0 +1,35 @@
+<!-- @dsCard group="Components" viewport="700x400" name="Form fields" subtitle="Input with unit suffix + inline word errors · consent block" -->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+<script src="../../ds-loader.js"></script>
+</head>
+<body style="margin:0;padding:20px;box-sizing:border-box">
+<div id="root"></div>
+<script type="text/babel" data-presets="react-classic">
+window.__dsReady.then((NS) => {
+const { Input, ConsentCheckbox } = NS;
+function Demo() {
+  const [ok, setOk] = React.useState(true);
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, alignItems: "start" }}>
+      <Input label="Berat badan" type="number" defaultValue="68" suffix="kg" hint="Perkiraan saja tidak apa-apa" />
+      <Input label="Email" defaultValue="sari@gmail" error="Format email belum benar" />
+      <div style={{ gridColumn: "1 / -1" }}>
+        <ConsentCheckbox checked={ok} onChange={setOk}>
+          Saya setuju dengan <a href="#">syarat layanan telemedisin</a> dan memahami bahwa dokter dapat menolak resep bila tidak aman untuk saya.
+        </ConsentCheckbox>
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<Demo />);
+});
+</script>
+</body>
+</html>

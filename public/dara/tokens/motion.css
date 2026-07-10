@@ -1,0 +1,12 @@
+/* Dara motion. 150–250ms ease-out on STATE CHANGES only
+   (quiz advance, accordion, status). No parallax, no scroll-jacking. */
+:root {
+  --ease-out: cubic-bezier(0.22, 0.68, 0.32, 1);
+  --dur-fast: 150ms;
+  --dur-base: 200ms;
+  --dur-slow: 250ms;
+
+  /* Focus: visible 2px terracotta ring, offset 2px, everywhere */
+  --focus-ring: 2px solid var(--dara-terracotta);
+  --focus-offset: 2px;
+}

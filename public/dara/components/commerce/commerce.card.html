@@ -1,0 +1,49 @@
+<!-- @dsCard group="Components" viewport="700x640" name="Commerce" subtitle="Plan card with prepay toggle · price anchor duo · order card" -->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+<script src="../../ds-loader.js"></script>
+</head>
+<body style="margin:0;padding:20px;box-sizing:border-box">
+<div id="root"></div>
+<script type="text/babel" data-presets="react-classic">
+window.__dsReady.then((NS) => {
+const { PlanCard, PriceAnchorCard, OrderCard } = NS;
+function Demo() {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 20, alignItems: "start" }}>
+      <PlanCard
+        planName="Program Berat Badan"
+        medication="Semaglutide pen mingguan"
+        features={["Konsultasi & tinjauan dokter", "Pendampingan pengaturan dosis", "Pengiriman diskret tiap bulan"]}
+        prices={{ 1: { perMonth: 3900000 }, 3: { perMonth: 3500000, total: 10500000, savings: "hemat 10%" }, 6: { perMonth: 3200000, total: 19200000, savings: "hemat 18%" } }}
+        defaultTerm={3}
+        ctaLabel="Mulai program"
+        onCta={() => {}}
+      />
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <PriceAnchorCard
+          left={{ eyebrow: "Beli obat sendiri di apotek", price: "±Rp 3.100.000/pen", note: "Tanpa pendampingan, tanpa pengaturan dosis" }}
+          right={{ eyebrow: "Program Dara", price: "Rp 3.900.000/bln", note: "Dokter, pendampingan & pengaturan dosis termasuk" }}
+        />
+        <OrderCard
+          orderNumber="Pesanan #DR-20260709-114"
+          title="Program Berat Badan — bulan ke-2"
+          statusLabel="Dalam perjalanan"
+          eta="Tiba diperkirakan 11 Juli 2026"
+          address="Jl. Kemang Raya No. 8, Jakarta Selatan"
+        />
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<Demo />);
+});
+</script>
+</body>
+</html>
