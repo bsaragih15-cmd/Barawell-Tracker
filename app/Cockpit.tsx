@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
-import type { MouseEvent as ReactMouseEvent, ChangeEvent as ReactChangeEvent } from 'react';
-import type { ScoredRow, Coverage, Config, Stage, Milestone } from './types';
-import { moveStage, setRag, toggleMilestone, updateConfig } from './actions';
+import type { ChangeEvent as ReactChangeEvent, DragEvent as ReactDragEvent } from 'react';
+import type { ScoredRow, Coverage, Config, Stage, Milestone, Pic, Snapshot, ChangeLog } from './types';
+import { setStage, setRag, toggleMilestone, addMilestone, deleteMilestone, updateConfig, createInitiative, updateInitiative, setOwner, setStatus, saveCardMeta } from './actions';
 
 const rp = (v: number) => {
   const a = Math.abs(v); let s: string;
@@ -13,61 +13,119 @@ const rp = (v: number) => {
   else s = Math.round(v).toString();
   return 'Rp ' + s;
 };
-const QC: Record<string, string> = { 'Quick Win': 'qw', 'Big Bet': 'bb', 'Fill-in': 'fi', 'Deprioritize': 'dp', 'Enabler': 'en' };
 const STCOLOR = (n: number) => `--s${n}`;
 const RAGV: Record<string, string> = { Green: '--rag-g', Amber: '--rag-a', Red: '--rag-r' };
+const STALE_DAYS = 14;
 
-export default function Cockpit({ rows, coverage, config, stages, milestones }:
-  { rows: ScoredRow[]; coverage: Coverage; config: Config; stages: Stage[]; milestones: Milestone[]; }) {
+// The only lifecycle vocabulary in the UI. The SQL engine still weights value
+// by the underlying stage confidence; the UI never surfaces L-codes.
+type StateName = 'Idea' | 'Execute' | 'Done';
+const stateOf = (stage: number): StateName => (stage <= 2 ? 'Idea' : stage === 5 ? 'Done' : 'Execute');
+const STATE_STAGE: Record<StateName, number> = { Idea: 2, Execute: 4, Done: 5 }; // canonical stage per state
+const STATE_COLOR: Record<StateName, string> = { Idea: '--s2', Execute: '--s4', Done: '--s5' };
 
-  const [view, setView] = useState<'pipe' | 'table' | 'board' | 'traj'>('pipe');
-  const [openId, setOpenId] = useState<string | null>(null);
-  const [sortKey, setSortKey] = useState<keyof ScoredRow>('ice');
+const initials = (name: string) => name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+// Deterministic muted colour per owner id so avatars are recognisable at a glance.
+const AV_COLORS = ['--s5', '--s3', '--en', '--fi', '--bb', '--s4'];
+const avColor = (id: string) => AV_COLORS[[...id].reduce((a, c) => a + c.charCodeAt(0), 0) % AV_COLORS.length];
+
+function Avatar({ name, ownerId, size = 20 }: { name: string; ownerId: string; size?: number }) {
+  return (
+    <span className="av" title={name}
+      style={{ width: size, height: size, background: `var(${avColor(ownerId)}s)`, color: `var(${avColor(ownerId)})`, fontSize: size * 0.42 }}>
+      {initials(name)}
+    </span>
+  );
+}
+
+export default function Cockpit({ rows: allRows, coverage, config, stages, milestones, pics, snapshots, changelog }:
+  { rows: ScoredRow[]; coverage: Coverage; config: Config; stages: Stage[]; milestones: Milestone[]; pics: Pic[]; snapshots: Snapshot[]; changelog: ChangeLog[]; }) {
+
+  const [view, setView] = useState<'board' | 'list'>('board');
+  const [sortKey, setSortKey] = useState<keyof ScoredRow>('ra_rev');
   const [sortDir, setSortDir] = useState(-1);
+  const [openId, setOpenId] = useState<string | null>(null);
   const [cfgOpen, setCfgOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState<null | { mode: 'new' } | { mode: 'edit'; row: ScoredRow }>(null);
+  const [showKilled, setShowKilled] = useState(false);
+  const [attentionOnly, setAttentionOnly] = useState(false);
+  const [ownerFilter, setOwnerFilter] = useState<string | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
-  const open = rows.find(r => r.id === openId) || null;
-  const openMs = milestones.filter(m => m.initiative_id === openId);
   const today = new Date().toISOString().slice(0, 10);
+  const daysSince = (iso: string) => Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  const ago = (iso: string) => {
+    const d = daysSince(iso);
+    if (d <= 0) { const h = Math.floor((Date.now() - new Date(iso).getTime()) / 3.6e6); return h <= 0 ? 'just now' : `${h}h ago`; }
+    if (d < 7) return `${d}d ago`;
+    if (d < 30) return `${Math.floor(d / 7)}w ago`;
+    return `${Math.floor(d / 30)}mo ago`;
+  };
+
+  // ---- adherence signals (display-layer only; scoring stays in SQL) ----
+  const overdueIds = useMemo(() => {
+    const s = new Set<string>();
+    milestones.forEach(m => { if (!m.done && m.due_date && m.due_date < today) s.add(m.initiative_id); });
+    return s;
+  }, [milestones, today]);
+  const isStale = (r: ScoredRow) => r.status === 'Active' && r.stage < 5 && daysSince(r.updated_at) >= STALE_DAYS;
+  const needsAttention = (r: ScoredRow) =>
+    r.status === 'Active' && r.stage < 5 &&
+    (r.rag_effective === 'Red' || r.rag_effective === 'Amber' || overdueIds.has(r.id) || isStale(r));
+
+  const nameById = useMemo(() => Object.fromEntries(allRows.map(r => [r.id, r.name])), [allRows]);
+  const isBlocked = (r: ScoredRow) => (r.blocked_by?.length ?? 0) > 0;
+
+  const killedCount = allRows.filter(r => r.status === 'Killed').length;
+  const attentionCount = allRows.filter(needsAttention).length;
+  const rows = allRows
+    .filter(r => (showKilled ? true : r.status !== 'Killed'))
+    .filter(r => (attentionOnly ? needsAttention(r) : true))
+    .filter(r => (ownerFilter ? r.owner_id === ownerFilter : true));
+  const buckets = useMemo(() => Array.from(new Set(allRows.map(r => r.bucket))).sort(), [allRows]);
+
+  const open = allRows.find(r => r.id === openId) || null;
+  const openMs = milestones.filter(m => m.initiative_id === openId);
 
   const T = coverage.target, cur = coverage.current_rev, gap = coverage.gap;
   const seg = (v: number) => `${Math.max(0, (v / T) * 100)}%`;
   const pipeCapped = Math.min(coverage.pipeline, Math.max(0, T - cur - coverage.committed - coverage.planned));
 
+  // Δ vs last week's snapshot (this week's row is index 0 — page refreshes it on load).
+  const prevSnap = snapshots.length > 1 ? snapshots[1] : null;
+  const delta = prevSnap && prevSnap.coverage_pct != null ? coverage.coverage_pct - Number(prevSnap.coverage_pct) : null;
+
   const act = (fn: () => Promise<void>) => start(() => { fn(); });
 
-  const bars = (n: number) => (
-    <span className="bars">{[1, 2, 3, 4, 5].map(i => <span key={i} className={'bar' + (i <= n ? ' f' : '')} />)}</span>
-  );
-  const chip = (q: string) => (
-    <span className="chip" style={{ background: `var(--${QC[q]}-s)`, color: `var(--${QC[q]})` }}>
-      <span className="cd" style={{ background: `var(--${QC[q]})` }} />{q}
-    </span>
-  );
-  const stgChip = (r: ScoredRow) => (
-    <span className="stg" style={{ background: `var(${STCOLOR(r.stage)}s)`, color: `var(${STCOLOR(r.stage)})` }}>
-      {r.stage_code} {r.stage_name}
-    </span>
-  );
+  // ---- drag & drop: cards carry their id; lanes accept a drop ----
+  const dragProps = (r: ScoredRow) => ({
+    draggable: true,
+    onDragStart: (e: ReactDragEvent) => { setDragId(r.id); e.dataTransfer.setData('text/plain', r.id); e.dataTransfer.effectAllowed = 'move'; },
+    onDragEnd: () => { setDragId(null); setDropTarget(null); },
+  });
+  const dropProps = (key: string, toStage: number) => ({
+    onDragOver: (e: ReactDragEvent) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDropTarget(key); },
+    onDragLeave: () => setDropTarget(t => (t === key ? null : t)),
+    onDrop: (e: ReactDragEvent) => {
+      e.preventDefault();
+      const id = e.dataTransfer.getData('text/plain') || dragId;
+      setDragId(null); setDropTarget(null);
+      if (!id) return;
+      const row = allRows.find(x => x.id === id);
+      if (row && row.stage !== toStage) act(() => setStage(id, toStage));
+    },
+  });
 
-  // ---- trajectory: 6-month risk-adjusted value ramp ----
-  const traj = useMemo(() => {
-    const months = 6;
-    const startOf = (st: number) => [3, 3, 2, 1, 0, 0][st]; // L1..L5 start month
-    const rampOf = (tti: string | null) => (tti === 'Q' ? 1 : tti === 'S' ? 4 : 2);
-    const pts: number[] = [];
-    for (let t = 0; t <= months; t++) {
-      let add = 0;
-      rows.forEach(r => {
-        const s = startOf(r.stage), ramp = rampOf(r.tti);
-        const frac = Math.max(0, Math.min(1, (t - s) / ramp));
-        add += r.ra_rev * frac;
-      });
-      pts.push(cur + add);
-    }
-    return pts;
-  }, [rows, cur]);
+  // 3-layer execution board mapped onto the stage-gates (no second state):
+  // Idea = L1–L2 · Execute = L3–L4 · Done = L5. Dropping into a lane moves
+  // the gate to the lane's canonical stage.
+  const LANES = [
+    { key: 'idea', title: 'Idea', hint: 'backlog · not yet started', match: (s: number) => stateOf(s) === 'Idea', toStage: STATE_STAGE.Idea, color: STATE_COLOR.Idea },
+    { key: 'execute', title: 'Execute', hint: 'in progress', match: (s: number) => stateOf(s) === 'Execute', toStage: STATE_STAGE.Execute, color: STATE_COLOR.Execute },
+    { key: 'done', title: 'Done', hint: 'realized · value landing', match: (s: number) => stateOf(s) === 'Done', toStage: STATE_STAGE.Done, color: STATE_COLOR.Done },
+  ] as const;
 
   return (
     <div className="wrap">
@@ -75,6 +133,7 @@ export default function Cockpit({ rows, coverage, config, stages, milestones }:
         <div className="brand"><h1>Barawell</h1><span className="sub">Value-Capture Pipeline · Q3 recovery</span></div>
         <div className="topright">
           <button className="assump-btn" onClick={() => setCfgOpen(true)}>Assumptions</button>
+          <button className="new-btn" onClick={() => setFormOpen({ mode: 'new' })}>+ New initiative</button>
           <div className="live"><span className="dot" />{pending ? 'saving…' : 'live · Supabase'}</div>
         </div>
       </div>
@@ -86,126 +145,148 @@ export default function Cockpit({ rows, coverage, config, stages, milestones }:
             <div className="eyebrow">Coverage to target · risk-adjusted by stage</div>
             <div className="lead">Current run-rate + pipeline value, confidence-weighted by stage-gate, against the {rp(T)} target</div>
           </div>
-          <div className="cov mono">{coverage.coverage_pct}%<small>of gap covered</small></div>
+          <div className="cov mono">
+            {coverage.coverage_pct}%<small>of gap covered</small>
+            {delta != null && (
+              <span className={'delta mono ' + (delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat')}>
+                {delta > 0 ? '▲' : delta < 0 ? '▼' : '—'} {Math.abs(delta)} pt vs last wk
+              </span>
+            )}
+          </div>
         </div>
         <div className="bridge">
           <div className="seg base" style={{ width: seg(cur) }} />
-          <div className="seg commit" style={{ width: seg(coverage.committed) }} />
-          <div className="seg plan" style={{ width: seg(coverage.planned) }} />
+          <div className="seg commit" style={{ width: seg(coverage.committed + coverage.planned) }} />
           <div className="seg pipe" style={{ width: seg(pipeCapped) }} />
           <div className="g-target" />
         </div>
         <div className="g-labels mono"><span>Current <b>{rp(cur)}</b></span><span>Target {rp(T)}</span></div>
         <div className="g-legend">
           <span><i className="sw" style={{ background: '#1E2530' }} />Current run-rate</span>
-          <span><i className="sw" style={{ background: 'var(--s5)' }} />Committed (L4–L5)</span>
-          <span><i className="sw" style={{ background: 'var(--s3)' }} />Planned (L3)</span>
-          <span><i className="sw" style={{ background: '#C3CEDA' }} />Pipeline (L1–L2)</span>
+          <span><i className="sw" style={{ background: 'var(--s5)' }} />Executing + Done</span>
+          <span><i className="sw" style={{ background: '#C3CEDA' }} />Ideas</span>
           <span><i className="sw" style={{ background: 'var(--line)' }} />Gap remaining</span>
         </div>
       </div>
 
       <div className="tiles">
         <div className="tile accent"><div className="eyebrow">Projected run-rate · risk-adj</div><div className="k mono">{rp(coverage.projected)}</div><div className="d">current + confidence-weighted pipeline</div></div>
-        <div className="tile"><div className="eyebrow">Committed value / mo</div><div className="k mono">{rp(coverage.committed)}</div><div className="d">L4 in-flight + L5 realized</div></div>
-        <div className="tile"><div className="eyebrow">Coverage of gap</div><div className="k mono">{coverage.coverage_pct}%</div><div className="d">committed only: {coverage.committed_pct}%</div></div>
+        <div className="tile"><div className="eyebrow">Executing value / mo</div><div className="k mono">{rp(coverage.committed + coverage.planned)}</div><div className="d">confidence-weighted · Execute + Done</div></div>
+        <div className="tile"><div className="eyebrow">Coverage of gap</div><div className="k mono">{coverage.coverage_pct}%</div><div className="d">ideas only: {rp(coverage.pipeline)}</div></div>
         <div className="tile"><div className="eyebrow">Gap remaining · risk-adj</div><div className="k mono">{rp(Math.max(0, gap - coverage.total_ra))}</div><div className="d">to {rp(T)} target</div></div>
+        <div className="tile warn"><div className="eyebrow">Reachable now · unblocked</div><div className="k mono">{rp(coverage.unblocked)}</div><div className="d">{rp(coverage.blocked)} blocked behind enablers</div></div>
       </div>
 
+      {/* FILTER BAR */}
       <div className="tabs">
-        <div className="tabset">
-          {([['pipe', 'Pipeline'], ['table', 'Register'], ['board', 'Prioritize'], ['traj', 'Trajectory']] as const).map(([v, l]) =>
-            <button key={v} className={'tab' + (view === v ? ' on' : '')} onClick={() => setView(v)}>{l}</button>)}
+        <div className="filterset">
+          <div className="tabset">
+            {([['board', 'Board'], ['list', 'Full list']] as const).map(([v, l]) =>
+              <button key={v} className={'tab' + (view === v ? ' on' : '')} onClick={() => setView(v)}>{l}</button>)}
+          </div>
+          <button className={'filter-chip attn' + (attentionOnly ? ' on' : '')} onClick={() => setAttentionOnly(a => !a)}>
+            <span className="fc-dot" />Needs attention <b className="mono">{attentionCount}</b>
+          </button>
+          {pics.map(p => (
+            <button key={p.id} className={'filter-chip' + (ownerFilter === p.id ? ' on' : '')}
+              onClick={() => setOwnerFilter(o => (o === p.id ? null : p.id))}>
+              <Avatar name={p.name} ownerId={p.id} size={16} />{p.name}
+            </button>
+          ))}
         </div>
-        <div className="meta">{rows.length} initiatives</div>
+        <div className="meta">
+          {rows.filter(r => r.status !== 'Killed').length} shown
+          {killedCount > 0 && <button className="killtoggle" onClick={() => setShowKilled(s => !s)}>{showKilled ? 'hide' : 'show'} {killedCount} killed</button>}
+        </div>
       </div>
 
-      {/* VIEWS */}
-      {view === 'pipe' && (
-        <div className="pipe-board">
-          {stages.map(st => {
-            const rs = rows.filter(r => r.stage === st.n).sort((a, b) => b.ra_rev - a.ra_rev);
-            const sum = rs.reduce((s, r) => s + r.ra_rev, 0);
-            return (
-              <div className="pcol" key={st.n}>
-                <div className="pcol-h"><span className="pt" style={{ color: `var(${STCOLOR(st.n)})` }}>{st.code} · {st.name}</span><span className="pc">{rs.length}</span></div>
-                <div className="pcol-conf">confidence {Math.round(st.confidence * 100)}%</div>
-                <div className="pcol-sum mono" style={{ color: `var(${STCOLOR(st.n)})` }}>{rp(sum)}/mo</div>
-                {rs.map(r => (
-                  <div className="pcard" key={r.id} style={{ borderTopColor: `var(${STCOLOR(st.n)})` }} onClick={() => setOpenId(r.id)}>
-                    <div className="pcid mono">{r.id}{r.rag_effective && <span className="rag" title={r.rag_override ? 'RAG · manual' : 'RAG · auto from milestones'} style={{ background: `var(${RAGV[r.rag_effective]})`, marginLeft: 6 }} />}</div>
+      {/* EXECUTION BOARD */}
+      {view === 'board' && (
+      <div className="exec-board">
+        {LANES.map(lane => {
+          const rs = rows.filter(r => lane.match(r.stage)).sort((a, b) => b.ra_rev - a.ra_rev);
+          const sum = rs.reduce((s, r) => s + r.ra_rev, 0);
+          return (
+            <div className={'lane' + (dropTarget === 'lane-' + lane.key ? ' dropon' : '')} key={lane.key} {...dropProps('lane-' + lane.key, lane.toStage)}>
+              <div className="lane-h">
+                <span className="lane-t" style={{ color: `var(${lane.color})` }}>{lane.title}</span>
+                <span className="lane-n">{rs.length}</span>
+              </div>
+              <div className="lane-hint">{lane.hint}</div>
+              <div className="lane-sum mono" style={{ color: `var(${lane.color})` }}>{rp(sum)}/mo risk-adj</div>
+              {rs.map(r => {
+                const nextMs = milestones.filter(m => m.initiative_id === r.id && !m.done && m.due_date).sort((a, b) => (a.due_date! < b.due_date! ? -1 : 1))[0];
+                const stale = isStale(r);
+                const age = r.state_since ? daysSince(r.state_since) : null;
+                const nextLine = r.next_action ? { text: r.next_action, due: r.next_due } : nextMs ? { text: nextMs.title, due: nextMs.due_date } : null;
+                const pct = r.ms_total ? Math.round((r.ms_done / r.ms_total) * 100) : null;
+                return (
+                  <div className={'pcard' + (r.status === 'Killed' ? ' killed' : '') + (dragId === r.id ? ' dragging' : '')} key={r.id}
+                    style={{ borderTopColor: `var(${STCOLOR(r.stage)})` }} onClick={() => setOpenId(r.id)} {...dragProps(r)}>
+                    <div className="pcid mono">
+                      {r.id}
+                      {r.rag_effective && <span className="rag" style={{ background: `var(${RAGV[r.rag_effective]})`, marginLeft: 6 }} />}
+                      {age != null && lane.key !== 'idea' && <span className="pcage" title={`In ${lane.title} ${age} days`}>{lane.title.toLowerCase()} {age}d</span>}
+                      {isBlocked(r) && <span className="blocktag" title={`Blocked by ${r.blocked_by!.join(', ')}`}>⛔ {r.blocked_by!.join(' ')}</span>}
+                      {stale && <span className="staletag" title={`No update in ${daysSince(r.updated_at)} days`}>stale {daysSince(r.updated_at)}d</span>}
+                      {r.status === 'Killed' && <span className="killtag">killed</span>}
+                    </div>
                     <div className="pcname">{r.name}</div>
+                    {r.note && <div className="pcnote">“{r.note.length > 70 ? r.note.slice(0, 70) + '…' : r.note}”</div>}
+                    {nextLine && (
+                      <div className={'pcnext mono' + (nextLine.due && nextLine.due < today ? ' over' : '')}>
+                        {nextLine.due && nextLine.due < today ? 'OVERDUE · ' : 'next · '}{nextLine.text.length > 32 ? nextLine.text.slice(0, 32) + '…' : nextLine.text}{nextLine.due ? ' · ' + nextLine.due : ''}
+                      </div>
+                    )}
+                    {pct != null && <div className="pcprog"><i style={{ width: pct + '%', background: `var(${STCOLOR(r.stage)})` }} /></div>}
                     <div className="pcfoot">
                       <span className="mono">{r.ra_rev > 0 ? rp(r.ra_rev) : r.pl_line === 'Enabler' ? 'enabler' : '—'}</span>
-                      {r.stage < 5
-                        ? <button className="gate-mini" title="Advance stage-gate" onClick={(e: ReactMouseEvent) => { e.stopPropagation(); act(() => moveStage(r.id, 1)); }}>▸</button>
-                        : <span>✓</span>}
+                      <span className="pcfoot-r">
+                        {r.ms_total > 0 && <span className="mono" style={{ fontSize: 10, color: 'var(--ink-3)' }}>{r.ms_done}/{r.ms_total}</span>}
+                        {r.owner_name && r.owner_id && <Avatar name={r.owner_name} ownerId={r.owner_id} size={18} />}
+                      </span>
                     </div>
                   </div>
-                ))}
-              </div>
-            );
-          })}
-        </div>
+                );
+              })}
+              {rs.length === 0 && <div className="lane-empty">drop here</div>}
+            </div>
+          );
+        })}
+      </div>
       )}
 
-      {view === 'table' && (
+      {/* FULL LIST */}
+      {view === 'list' && (
         <div className="panel">
           <table>
             <thead><tr>
-              {([['id', 'ID', 0], ['name', 'Initiative', 0], ['stage', 'Stage', 0], ['pl_line', 'P&L', 0], ['rag', 'RAG', 0],
-                ['incr_rev', 'Gross / mo', 1], ['ra_rev', 'Risk-adj / mo', 1], ['ice', 'ICE', 1], ['quadrant', 'Quadrant', 0], ['stage', 'Gate', 1]] as const)
-                .map(([k, l, n], i) => <th key={i} className={n ? 'num' : ''} onClick={() => { setSortKey(k as keyof ScoredRow); setSortDir((d: number) => sortKey === k ? -d : (k === 'name' || k === 'id' || k === 'pl_line') ? 1 : -1); }}>{l}</th>)}
+              {([['id', 'ID', 0], ['name', 'Initiative', 0], ['owner_name', 'Owner', 0], ['stage', 'State', 0], ['pl_line', 'P&L', 0], ['rag', 'RAG', 0],
+                ['incr_rev', 'Gross / mo', 1], ['ra_rev', 'Risk-adj / mo', 1], ['ice', 'ICE', 1], ['updated_at', 'Updated', 1]] as const)
+                .map(([k, l, n], i) => <th key={i} className={n ? 'num' : ''} onClick={() => { setSortKey(k as keyof ScoredRow); setSortDir((d: number) => sortKey === k ? -d : (k === 'name' || k === 'id' || k === 'pl_line' || k === 'owner_name') ? 1 : -1); }}>{l}</th>)}
             </tr></thead>
             <tbody>
-              {[...rows].sort((a, b) => { const av = a[sortKey] as string | number | null, bv = b[sortKey] as string | number | null; return typeof av === 'string' ? sortDir * av.localeCompare(bv as string) : sortDir * (((av as number) || 0) - ((bv as number) || 0)); }).map(r => (
-                <tr key={r.id} onClick={() => setOpenId(r.id)}>
-                  <td className="id mono">{r.id}</td>
-                  <td className="name">{r.name}<div className="drv">{r.driver}</div></td>
-                  <td>{stgChip(r)}</td>
-                  <td className="pl">{r.pl_line}</td>
-                  <td>{r.rag_effective ? <span className="rag" title={r.rag_override ? 'manual' : 'auto'} style={{ background: `var(${RAGV[r.rag_effective]})`, opacity: r.rag_override ? 1 : 0.75 }} /> : <span style={{ color: 'var(--ink-3)' }}>—</span>}</td>
-                  <td className="num mono">{r.incr_rev > 0 ? rp(r.incr_rev) : '—'}</td>
-                  <td className="num mono" style={{ fontWeight: 600, color: 'var(--accent-ink)' }}>{r.ra_rev > 0 ? rp(r.ra_rev) : '—'}</td>
-                  <td className="num mono" style={{ fontWeight: 600 }}>{r.ice}</td>
-                  <td>{chip(r.quadrant)}</td>
-                  <td className="num">{r.stage < 5
-                    ? <button className="gate" onClick={(e: ReactMouseEvent) => { e.stopPropagation(); act(() => moveStage(r.id, 1)); }}>Advance ▸</button>
-                    : <button className="gate" disabled>Realized</button>}</td>
-                </tr>
-              ))}
+              {[...rows].sort((a, b) => { const av = a[sortKey] as string | number | null, bv = b[sortKey] as string | number | null; return typeof av === 'string' ? sortDir * av.localeCompare((bv as string) ?? '') : sortDir * (((av as number) || 0) - ((bv as number) || 0)); }).map(r => {
+                const st = stateOf(r.stage);
+                return (
+                  <tr key={r.id} className={r.status === 'Killed' ? 'killed-row' : ''} onClick={() => setOpenId(r.id)}>
+                    <td className="id mono">{r.id}</td>
+                    <td className="name">{r.name}{isStale(r) && <span className="staletag">stale {daysSince(r.updated_at)}d</span>}{r.status === 'Killed' && <span className="killtag">killed</span>}<div className="drv">{r.driver}</div></td>
+                    <td>{r.owner_name && r.owner_id
+                      ? <span className="ownercell"><Avatar name={r.owner_name} ownerId={r.owner_id} size={18} />{r.owner_name}</span>
+                      : <span style={{ color: 'var(--ink-3)' }}>—</span>}</td>
+                    <td><span className="stg" style={{ background: `var(${STATE_COLOR[st]}s)`, color: `var(${STATE_COLOR[st]})` }}>{st}</span></td>
+                    <td className="pl">{r.pl_line}</td>
+                    <td>{r.rag_effective ? <span className="rag" title={r.rag_override ? 'manual' : 'auto'} style={{ background: `var(${RAGV[r.rag_effective]})`, opacity: r.rag_override ? 1 : 0.75 }} /> : <span style={{ color: 'var(--ink-3)' }}>—</span>}</td>
+                    <td className="num mono">{r.incr_rev > 0 ? rp(r.incr_rev) : '—'}</td>
+                    <td className="num mono" style={{ fontWeight: 600, color: 'var(--accent-ink)' }}>{r.ra_rev > 0 ? rp(r.ra_rev) : '—'}</td>
+                    <td className="num mono" style={{ fontWeight: 600 }}>{r.ice}</td>
+                    <td className="num mono" style={{ fontSize: 11, color: 'var(--ink-3)' }}>{r.updated_at.slice(0, 10)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
-        </div>
-      )}
-
-      {view === 'board' && (
-        <div className="board">
-          {['Quick Win', 'Big Bet', 'Fill-in', 'Deprioritize', 'Enabler'].map(q => {
-            const rs = rows.filter(r => r.quadrant === q).sort((a, b) => b.ice - a.ice);
-            return (
-              <div className="col" key={q}>
-                <div className="col-h"><span className="ct" style={{ color: `var(--${QC[q]})` }}>{q}</span><span className="cn">{rs.length}</span></div>
-                {rs.map(r => (
-                  <div className="card" key={r.id} style={{ borderLeftColor: `var(--${QC[q]})` }} onClick={() => setOpenId(r.id)}>
-                    <div className="cid mono">{r.id} · {r.stage_code}</div>
-                    <div className="cname">{r.name}</div>
-                    <div className="cfoot"><span className="mono">{r.incr_rev > 0 ? rp(r.incr_rev) : 'protective'}</span><span className="mono">ICE {r.ice}</span></div>
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {view === 'traj' && (
-        <div className="traj">
-          <div className="eyebrow" style={{ marginBottom: 4 }}>Value trajectory · next 6 months</div>
-          <div className="lead" style={{ fontSize: 12, color: 'var(--ink-2)', marginBottom: 14 }}>
-            Risk-adjusted run-rate as pipeline value phases in (ramp derived from stage + time-to-impact). Dashed = {rp(T)} target.
-          </div>
-          <Trajectory pts={traj} target={T} />
         </div>
       )}
 
@@ -224,23 +305,74 @@ export default function Cockpit({ rows, coverage, config, stages, milestones }:
         {open && (
           <>
             <div className="dh">
-              <div className="did mono">{open.id} · {open.bucket.split('·')[1]?.trim()} · {open.pl_line}</div>
+              <div className="did mono">{open.id} · {open.bucket.split('·')[1]?.trim()} · {open.pl_line}{open.status === 'Killed' && <span className="killtag">killed</span>}</div>
               <h3>{open.name}</h3>
               <button className="x" onClick={() => setOpenId(null)}>✕</button>
+              <button className="edit-link" onClick={() => setFormOpen({ mode: 'edit', row: open })}>Edit inputs</button>
             </div>
             <div className="db">
               <div className="desc">{open.description}</div>
 
-              <div className="rail">
-                {stages.map(st => {
-                  const cls = st.n < open.stage ? 'done' : st.n === open.stage ? 'done cur' : '';
-                  return <div className={'rnode ' + cls} key={st.n}><div className="rdot">{st.code.slice(1)}</div><div className="rlbl">{st.name}</div></div>;
-                })}
+              {isBlocked(open) && (
+                <div className="blockbar">
+                  <span className="bb-i">⛔</span>
+                  <span>Blocked — waiting on {open.blocked_by!.map((id, i) => (
+                    <span key={id}>{i ? ', ' : ''}<button className="depinline" onClick={() => setOpenId(id)}>{id} {nameById[id]}</button></span>
+                  ))} to reach Done.</span>
+                </div>
+              )}
+
+              {(open.how_it_works || (open.steps && open.steps.length) || open.done_when) && (
+                <div className="playbook">
+                  {open.how_it_works && <div className="pb-fld"><span className="section-t">How it works</span><p>{open.how_it_works}</p></div>}
+                  {open.steps && open.steps.length > 0 && (
+                    <div className="pb-fld"><span className="section-t">How to execute</span>
+                      <ol className="pb-steps">{open.steps.map((s, i) => <li key={i}>{s}</li>)}</ol>
+                    </div>
+                  )}
+                  {open.done_when && <div className="pb-fld"><span className="section-t">Done when</span><p className="pb-done">{open.done_when}</p></div>}
+                </div>
+              )}
+
+              {open.depends_on && open.depends_on.length > 0 && (
+                <>
+                  <p className="section-t">Depends on</p>
+                  <div className="deps">
+                    {open.depends_on.map(id => {
+                      const dep = allRows.find(x => x.id === id);
+                      const done = dep ? dep.stage >= 5 : false;
+                      return <button key={id} className={'dep' + (done ? ' met' : ' unmet')} onClick={() => setOpenId(id)}>
+                        <b>{id}</b> {nameById[id] || ''}<span className="dep-st">{done ? '✓ done' : dep ? stateOf(dep.stage) : '—'}</span>
+                      </button>;
+                    })}
+                  </div>
+                </>
+              )}
+
+              <p className="section-t">Owner</p>
+              <div className="owner-set">
+                {pics.map(p => (
+                  <button key={p.id} className={'owner-btn' + (open.owner_id === p.id ? ' on' : '')}
+                    onClick={() => act(() => setOwner(open.id, open.owner_id === p.id ? null : p.id))}>
+                    <Avatar name={p.name} ownerId={p.id} size={18} />{p.name}{p.is_lead && <span className="leadtag">lead</span>}
+                  </button>
+                ))}
               </div>
-              <div className="gatebar">
-                <button disabled={open.stage <= 1} onClick={() => act(() => moveStage(open.id, -1))}>◂ Regress</button>
-                <button className="adv" disabled={open.stage >= 5} onClick={() => act(() => moveStage(open.id, 1))}>Advance gate ▸</button>
+
+              <p className="section-t">State</p>
+              <div className="state-set">
+                {(['Idea', 'Execute', 'Done'] as StateName[]).map(s => (
+                  <button key={s}
+                    className={'state-btn' + (stateOf(open.stage) === s ? ' on' : '')}
+                    style={stateOf(open.stage) === s ? { borderColor: `var(${STATE_COLOR[s]})`, background: `var(${STATE_COLOR[s]}s)`, color: `var(${STATE_COLOR[s]})` } : undefined}
+                    onClick={() => { if (stateOf(open.stage) !== s) act(() => setStage(open.id, STATE_STAGE[s])); }}>
+                    {s}
+                  </button>
+                ))}
               </div>
+              {open.state_since && <div className="state-age">in {stateOf(open.stage)} for {daysSince(open.state_since)} days · updated {ago(open.updated_at)}</div>}
+
+              <CardStatus key={open.id} row={open} save={(patch) => act(() => saveCardMeta(open.id, patch))} />
 
               <p className="section-t">Delivery status (RAG)</p>
               <div className="rag-set">
@@ -254,26 +386,23 @@ export default function Cockpit({ rows, coverage, config, stages, milestones }:
                   ? <>Manual override · <button className="linkbtn" onClick={() => act(() => setRag(open.id, null))}>use auto (milestones)</button></>
                   : open.rag_auto
                     ? <>Auto from milestones — set a value to override</>
-                    : <>No milestones yet — add milestones or set a value manually</>}
+                    : <>No milestones yet — add one below so RAG derives automatically</>}
               </div>
 
-              {openMs.length > 0 && (
-                <>
-                  <p className="section-t">Milestones ({open.ms_done}/{open.ms_total})</p>
-                  <div className="msbar"><i style={{ width: `${open.ms_total ? (open.ms_done / open.ms_total) * 100 : 0}%` }} /></div>
-                  {openMs.map(m => {
-                    const overdue = !m.done && m.due_date != null && m.due_date < today;
-                    return (
-                      <label className={'ms' + (m.done ? ' done' : '') + (overdue ? ' over' : '')} key={m.id}>
-                        <input type="checkbox" checked={m.done} onChange={(e: ReactChangeEvent<HTMLInputElement>) => act(() => toggleMilestone(m.id, e.target.checked))} />
-                        <span>{m.title}</span>
-                        {m.due_date && <span className="due mono">{overdue ? 'overdue · ' : ''}{m.due_date}</span>}
-                      </label>
-                    );
-                  })}
-                  <div style={{ height: 16 }} />
-                </>
-              )}
+              <p className="section-t">Milestones ({open.ms_done}/{open.ms_total})</p>
+              {open.ms_total > 0 && <div className="msbar"><i style={{ width: `${open.ms_total ? (open.ms_done / open.ms_total) * 100 : 0}%` }} /></div>}
+              {openMs.map(m => {
+                const overdue = !m.done && m.due_date != null && m.due_date < today;
+                return (
+                  <label className={'ms' + (m.done ? ' done' : '') + (overdue ? ' over' : '')} key={m.id}>
+                    <input type="checkbox" checked={m.done} onChange={(e: ReactChangeEvent<HTMLInputElement>) => act(() => toggleMilestone(m.id, e.target.checked))} />
+                    <span>{m.title}</span>
+                    {m.due_date && <span className="due mono">{overdue ? 'overdue · ' : ''}{m.due_date}</span>}
+                    <button className="ms-del" title="Delete milestone" onClick={(e) => { e.preventDefault(); act(() => deleteMilestone(m.id)); }}>✕</button>
+                  </label>
+                );
+              })}
+              <MilestoneAdd onAdd={(title, due) => act(() => addMilestone(open.id, title, due))} />
 
               <div className="calc">
                 <div className="ct2">Impact math</div>
@@ -281,7 +410,7 @@ export default function Cockpit({ rows, coverage, config, stages, milestones }:
                 <div className="crow"><span className="cl">× Uplift</span><span className="cv mono">{Math.round(open.uplift * 100)}%</span></div>
                 <div className="crow"><span className="cl">× Coverage</span><span className="cv mono">{Math.round(open.coverage * 100)}%</span></div>
                 <div className="crow"><span className="cl">= Gross revenue / mo</span><span className="cv mono">{open.incr_rev > 0 ? rp(open.incr_rev) : '—'}</span></div>
-                <div className="crow"><span className="cl">× Stage confidence ({open.stage_code})</span><span className="cv mono">{Math.round(open.stage_conf * 100)}%</span></div>
+                <div className="crow"><span className="cl">× Confidence ({stateOf(open.stage)})</span><span className="cv mono">{Math.round(open.stage_conf * 100)}%</span></div>
                 <div className="crow eq"><span className="cl">Risk-adjusted value / mo</span><span className="cv mono">{open.ra_rev > 0 ? rp(open.ra_rev) : '—'}</span></div>
               </div>
               <div className="calc">
@@ -292,10 +421,118 @@ export default function Cockpit({ rows, coverage, config, stages, milestones }:
                 <div className="crow"><span className="cl">3-month net GP</span><span className="cv mono">{rp(open.net_3mo)}</span></div>
                 <div className="crow"><span className="cl">Payback</span><span className="cv mono">{open.payback_mo ? open.payback_mo.toFixed(1) + ' months' : 'n/a'}</span></div>
               </div>
+
+              <p className="section-t">Activity</p>
+              <div className="activity">
+                {changelog.filter(l => l.entity_id === open.id).slice(0, 12).map(l => (
+                  <div className="act-row" key={l.id}>
+                    <span className="act-dot" />
+                    <span className="act-body"><b>{l.field}</b>{l.old_val && l.new_val ? <> · {l.old_val} → {l.new_val}</> : l.new_val ? <> · {l.new_val}</> : null}</span>
+                    <span className="act-at mono">{ago(l.at)}</span>
+                  </div>
+                ))}
+                {changelog.filter(l => l.entity_id === open.id).length === 0 && <div className="act-empty">No changes logged yet.</div>}
+              </div>
+
+              <div className="danger">
+                {open.status === 'Active'
+                  ? <button className="kill-btn" onClick={() => act(() => setStatus(open.id, 'Killed'))}>Kill initiative</button>
+                  : <button className="restore-btn" onClick={() => act(() => setStatus(open.id, 'Active'))}>Restore to register</button>}
+                <p className="danger-note">
+                  {open.status === 'Active'
+                    ? 'Kills via status — the ID is kept (rule 3) and its value drops out of the coverage bridge. Reversible.'
+                    : 'Killed — excluded from coverage. Restore to count it again.'}
+                </p>
+              </div>
             </div>
           </>
         )}
       </div>
+
+      {formOpen && (
+        <InitiativeModal
+          mode={formOpen.mode}
+          row={formOpen.mode === 'edit' ? formOpen.row : null}
+          buckets={buckets}
+          pics={pics}
+          onClose={() => setFormOpen(null)}
+          save={(input) => act(async () => {
+            if (formOpen.mode === 'new') { await createInitiative(input); }
+            else { await updateInitiative(formOpen.row.id, input); }
+          })}
+        />
+      )}
+    </div>
+  );
+}
+
+function CardStatus({ row, save }: { row: ScoredRow; save: (patch: Record<string, unknown>) => void }) {
+  const [nextAction, setNextAction] = useState(row.next_action ?? '');
+  const [nextDue, setNextDue] = useState(row.next_due ?? '');
+  const [note, setNote] = useState(row.note ?? '');
+  const [actual, setActual] = useState<string>(row.kpi_actual != null ? String(row.kpi_actual) : '');
+
+  const nextDirty = nextAction !== (row.next_action ?? '') || nextDue !== (row.next_due ?? '');
+  const noteDirty = note !== (row.note ?? '');
+  const actualDirty = actual !== (row.kpi_actual != null ? String(row.kpi_actual) : '');
+
+  const saveNext = () => { if (nextDirty) save({ next_action: nextAction.trim() || null, next_due: nextDue || null }); };
+  const saveNote = () => { if (noteDirty) save({ note: note.trim() || null }); };
+  const saveActual = () => { if (actualDirty) save({ kpi_actual: actual === '' ? null : Number(actual) }); };
+
+  // Progress against a baseline: (actual − baseline) / (target − baseline).
+  const base = row.kpi_baseline ?? 0;
+  const span = (row.kpi_target ?? 0) - base;
+  const pct = span !== 0 ? Math.max(0, Math.min(100, Math.round(((Number(actual) || 0) - base) / span * 100))) : null;
+
+  return (
+    <div className="cardstatus">
+      <p className="section-t">What&apos;s next</p>
+      <div className="next-row">
+        <input className="next-t" placeholder="The single next action…" value={nextAction}
+          onChange={e => setNextAction(e.target.value)} onBlur={saveNext}
+          onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
+        <input className="next-d mono" type="date" value={nextDue} onChange={e => setNextDue(e.target.value)} onBlur={saveNext} />
+      </div>
+
+      <p className="section-t">Status note</p>
+      <textarea className="note-t" rows={2} placeholder="Where this stands this week…" value={note}
+        onChange={e => setNote(e.target.value)} onBlur={saveNote} />
+
+      {row.kpi_label ? (
+        <>
+          <p className="section-t">KPI · {row.kpi_label} {row.kpi_leading != null && <span className={'kpi-tag ' + (row.kpi_leading ? 'lead' : 'lag')}>{row.kpi_leading ? 'leading' : 'lagging'}</span>}</p>
+          <div className="kpi-row">
+            {row.kpi_baseline != null && <><span className="kpi-tgt mono">{row.kpi_baseline}{row.kpi_unit}</span><span className="kpi-sep">base →</span></>}
+            <input className="kpi-a mono" type="number" value={actual} placeholder="actual"
+              onChange={e => setActual(e.target.value)} onBlur={saveActual} />
+            <span className="kpi-unit">{row.kpi_unit}</span>
+            <span className="kpi-sep">→ target</span>
+            <span className="kpi-tgt mono">{row.kpi_target ?? '—'}{row.kpi_unit}</span>
+          </div>
+          {pct != null && <div className="kpi-bar"><i style={{ width: pct + '%' }} /></div>}
+          {pct != null && <div className="kpi-pct mono">{pct}% of the way from baseline to target</div>}
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+function MilestoneAdd({ onAdd }: { onAdd: (title: string, due: string | null) => void }) {
+  const [title, setTitle] = useState('');
+  const [due, setDue] = useState('');
+  const submit = () => {
+    if (!title.trim()) return;
+    onAdd(title, due || null);
+    setTitle(''); setDue('');
+  };
+  return (
+    <div className="ms-add">
+      <input className="ms-add-t" placeholder="New milestone…" value={title}
+        onChange={e => setTitle(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') submit(); }} />
+      <input className="ms-add-d mono" type="date" value={due} onChange={e => setDue(e.target.value)} />
+      <button className="ms-add-b" disabled={!title.trim()} onClick={submit}>Add</button>
     </div>
   );
 }
@@ -376,29 +613,261 @@ function ConfigModal({ config, onClose, save }:
   );
 }
 
-function Trajectory({ pts, target }: { pts: number[]; target: number }) {
-  const W = 760, H = 260, pad = 40;
-  const maxY = Math.max(target * 1.05, ...pts);
-  const x = (i: number) => pad + (i / (pts.length - 1)) * (W - pad * 2);
-  const y = (v: number) => H - pad - (v / maxY) * (H - pad * 2);
-  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${x(i)},${y(p)}`).join(' ');
-  const area = `${line} L${x(pts.length - 1)},${H - pad} L${x(0)},${H - pad} Z`;
+const BASE_TYPES: [string, string][] = [
+  ['REPEAT', 'Repeat revenue'], ['NEW', 'New-customer revenue'], ['TOTAL', 'Total revenue'],
+  ['DTC', 'DTC revenue'], ['MKT', 'Marketplace revenue'], ['TOKO_LOST', 'Tokopedia lost pool'],
+  ['DIRECT', 'Direct Rp (set manually)'],
+];
+
+function InitiativeModal({ mode, row, buckets, pics, onClose, save }: {
+  mode: 'new' | 'edit'; row: ScoredRow | null; buckets: string[]; pics: Pic[];
+  onClose: () => void; save: (input: Record<string, unknown>) => void;
+}) {
+  const [f, setF] = useState({
+    bucket: row?.bucket ?? buckets[0] ?? '',
+    name: row?.name ?? '',
+    driver: row?.driver ?? '',
+    description: row?.description ?? '',
+    base_type: row?.base_type ?? 'REPEAT',
+    direct_rp: (row?.direct_rp ?? 0) / 1e6,
+    uplift: (row?.uplift ?? 0.1) * 100,
+    coverage: (row?.coverage ?? 0.5) * 100,
+    build_cost: (row?.build_cost ?? 0) / 1e6,
+    monthly_cost: (row?.monthly_cost ?? 0) / 1e6,
+    tti: row?.tti ?? 'M',
+    conf: row?.conf ?? 3,
+    ease: row?.ease ?? 3,
+    stage: row?.stage ?? 1,
+    pl_line: row?.pl_line ?? 'Revenue',
+    recurring: row?.recurring ?? true,
+    in_plan: row?.in_plan ?? false,
+    owner_id: row?.owner_id ?? '',
+    kpi_label: row?.kpi_label ?? '',
+    kpi_target: row?.kpi_target ?? ('' as number | ''),
+    kpi_unit: row?.kpi_unit ?? '',
+    kpi_baseline: row?.kpi_baseline ?? ('' as number | ''),
+    kpi_leading: row?.kpi_leading ?? false,
+    how_it_works: row?.how_it_works ?? '',
+    steps: (row?.steps ?? []).join('\n'),
+    done_when: row?.done_when ?? '',
+    depends_on: (row?.depends_on ?? []).join(', '),
+  });
+  const upd = (k: keyof typeof f, v: unknown) => setF(s => ({ ...s, [k]: v }));
+  const num = (e: ReactChangeEvent<HTMLInputElement>) => e.target.valueAsNumber;
+  const val = (n: number) => (Number.isNaN(n) ? '' : n);
+  const isDirect = f.base_type === 'DIRECT';
+  const valid = f.name.trim() !== '' && f.bucket.trim() !== '';
+
+  const submit = () => {
+    if (!valid) return;
+    save({
+      bucket: f.bucket, name: f.name.trim(),
+      driver: f.driver.trim() || null, description: f.description.trim() || null,
+      base_type: f.base_type,
+      direct_rp: Math.round((f.direct_rp || 0) * 1e6),
+      uplift: (f.uplift || 0) / 100, coverage: (f.coverage || 0) / 100,
+      build_cost: Math.round((f.build_cost || 0) * 1e6),
+      monthly_cost: Math.round((f.monthly_cost || 0) * 1e6),
+      tti: f.tti || null, conf: f.conf, ease: f.ease, stage: f.stage,
+      pl_line: f.pl_line, recurring: f.recurring, in_plan: f.in_plan,
+      owner_id: f.owner_id || null,
+      kpi_label: f.kpi_label.trim() || null,
+      kpi_target: f.kpi_target === '' ? null : Number(f.kpi_target),
+      kpi_unit: f.kpi_unit.trim() || null,
+      kpi_baseline: f.kpi_baseline === '' ? null : Number(f.kpi_baseline),
+      kpi_leading: f.kpi_leading,
+      how_it_works: f.how_it_works.trim() || null,
+      steps: f.steps.split('\n').map(s => s.trim()).filter(Boolean),
+      done_when: f.done_when.trim() || null,
+      depends_on: f.depends_on.split(',').map(s => s.trim().toUpperCase()).filter(Boolean),
+    });
+    onClose();
+  };
+
+  const nextId = mode === 'new' ? (f.bucket.trim().charAt(0).toUpperCase() + '…') : row?.id;
+
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
-      {[0, 0.25, 0.5, 0.75, 1].map((f, i) => (
-        <g key={i}>
-          <line x1={pad} x2={W - pad} y1={y(maxY * f)} y2={y(maxY * f)} stroke="var(--line-2)" />
-          <text x={pad - 6} y={y(maxY * f) + 3} textAnchor="end" fontSize="9" fill="var(--ink-3)" fontFamily="JetBrains Mono">
-            {(maxY * f / 1e6).toFixed(0)}M
-          </text>
-        </g>
-      ))}
-      <line x1={pad} x2={W - pad} y1={y(target)} y2={y(target)} stroke="var(--ink)" strokeDasharray="4 4" opacity="0.55" />
-      <text x={W - pad} y={y(target) - 5} textAnchor="end" fontSize="9" fill="var(--ink)" fontFamily="JetBrains Mono">target</text>
-      <path d={area} fill="var(--accent-soft)" />
-      <path d={line} fill="none" stroke="var(--accent)" strokeWidth="2.5" />
-      {pts.map((p, i) => <circle key={i} cx={x(i)} cy={y(p)} r="3" fill="var(--accent)" />)}
-      {pts.map((_, i) => <text key={i} x={x(i)} y={H - pad + 15} textAnchor="middle" fontSize="9" fill="var(--ink-3)" fontFamily="JetBrains Mono">M{i}</text>)}
-    </svg>
+    <>
+      <div className="scrim on" onClick={onClose} />
+      <div className="modal wide" role="dialog" aria-modal="true">
+        <div className="modal-h">
+          <div>
+            <div className="eyebrow">{mode === 'new' ? 'Add to register' : `Edit ${row?.id}`}</div>
+            <h3>{mode === 'new' ? `New initiative · ${nextId}` : row?.name}</h3>
+          </div>
+          <button className="x" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-b">
+          <p className="modal-note">
+            Inputs only — every score (impact, ICE, quadrant, risk-adjusted value) is computed in
+            <span className="mono"> v_initiatives_scored</span> the moment you save. ID is assigned automatically from the bucket (rule 3).
+          </p>
+
+          <div className="fsec">Identity</div>
+          <div className="fgrid">
+            <label className="field span2">
+              <span className="flbl">Initiative name</span>
+              <div className="finput"><input value={f.name} onChange={e => upd('name', e.target.value)} placeholder="e.g. Subscribe & save" /></div>
+            </label>
+            <label className="field">
+              <span className="flbl">Bucket</span>
+              <div className="finput"><select value={f.bucket} onChange={e => upd('bucket', e.target.value)}>
+                {buckets.map(b => <option key={b} value={b}>{b}</option>)}
+              </select></div>
+            </label>
+            <label className="field">
+              <span className="flbl">Owner</span>
+              <div className="finput"><select value={f.owner_id} onChange={e => upd('owner_id', e.target.value)}>
+                <option value="">— unassigned —</option>
+                {pics.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select></div>
+            </label>
+            <label className="field span2">
+              <span className="flbl">Driver (one line)</span>
+              <div className="finput"><input value={f.driver} onChange={e => upd('driver', e.target.value)} placeholder="e.g. Refill freq up / churn down" /></div>
+            </label>
+            <label className="field span2">
+              <span className="flbl">Description</span>
+              <textarea className="ftext" value={f.description} onChange={e => upd('description', e.target.value)} rows={3} />
+            </label>
+          </div>
+
+          <div className="fsec">Value drivers</div>
+          <div className="fgrid">
+            <label className="field">
+              <span className="flbl">Revenue base</span>
+              <div className="finput"><select value={f.base_type} onChange={e => upd('base_type', e.target.value)}>
+                {BASE_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select></div>
+            </label>
+            {isDirect ? (
+              <label className="field">
+                <span className="flbl">Direct base pool</span>
+                <div className="finput"><input type="number" className="mono" value={val(f.direct_rp)} onChange={e => upd('direct_rp', num(e))} /><span className="funit">Rp M / mo</span></div>
+              </label>
+            ) : (
+              <label className="field">
+                <span className="flbl">Uplift on base</span>
+                <div className="finput"><input type="number" className="mono" value={val(f.uplift)} onChange={e => upd('uplift', num(e))} /><span className="funit">%</span></div>
+              </label>
+            )}
+            {!isDirect && (
+              <label className="field">
+                <span className="flbl">Coverage of base</span>
+                <div className="finput"><input type="number" className="mono" value={val(f.coverage)} onChange={e => upd('coverage', num(e))} /><span className="funit">%</span></div>
+              </label>
+            )}
+            {isDirect && (
+              <>
+                <label className="field">
+                  <span className="flbl">Uplift factor</span>
+                  <div className="finput"><input type="number" className="mono" value={val(f.uplift)} onChange={e => upd('uplift', num(e))} /><span className="funit">%</span></div>
+                </label>
+                <label className="field">
+                  <span className="flbl">Coverage factor</span>
+                  <div className="finput"><input type="number" className="mono" value={val(f.coverage)} onChange={e => upd('coverage', num(e))} /><span className="funit">%</span></div>
+                </label>
+              </>
+            )}
+            <label className="field">
+              <span className="flbl">Build cost · one-off</span>
+              <div className="finput"><input type="number" className="mono" value={val(f.build_cost)} onChange={e => upd('build_cost', num(e))} /><span className="funit">Rp M</span></div>
+            </label>
+            <label className="field">
+              <span className="flbl">Monthly running cost</span>
+              <div className="finput"><input type="number" className="mono" value={val(f.monthly_cost)} onChange={e => upd('monthly_cost', num(e))} /><span className="funit">Rp M / mo</span></div>
+            </label>
+            <label className="field">
+              <span className="flbl">P&amp;L line</span>
+              <div className="finput"><select value={f.pl_line} onChange={e => upd('pl_line', e.target.value)}>
+                {['Revenue', 'Gross margin', 'Enabler'].map(v => <option key={v} value={v}>{v}</option>)}
+              </select></div>
+            </label>
+          </div>
+
+          <div className="fsec">Confidence &amp; lifecycle</div>
+          <div className="fgrid">
+            <label className="field">
+              <span className="flbl">Confidence (1–5)</span>
+              <div className="finput"><input type="number" min={1} max={5} className="mono" value={val(f.conf)} onChange={e => upd('conf', Math.max(1, Math.min(5, num(e))))} /></div>
+            </label>
+            <label className="field">
+              <span className="flbl">Ease (1–5)</span>
+              <div className="finput"><input type="number" min={1} max={5} className="mono" value={val(f.ease)} onChange={e => upd('ease', Math.max(1, Math.min(5, num(e))))} /></div>
+            </label>
+            <label className="field">
+              <span className="flbl">Time-to-impact</span>
+              <div className="finput"><select value={f.tti ?? ''} onChange={e => upd('tti', e.target.value)}>
+                <option value="Q">Quick (≈1 mo)</option><option value="M">Medium (≈2 mo)</option><option value="S">Slow (≈4 mo)</option>
+              </select></div>
+            </label>
+            <label className="field">
+              <span className="flbl">State</span>
+              <div className="finput"><select value={STATE_STAGE[stateOf(f.stage)]} onChange={e => upd('stage', parseInt(e.target.value, 10))}>
+                {(['Idea', 'Execute', 'Done'] as StateName[]).map(s => <option key={s} value={STATE_STAGE[s]}>{s}</option>)}
+              </select></div>
+            </label>
+            <label className="field chk">
+              <input type="checkbox" checked={f.recurring} onChange={e => upd('recurring', e.target.checked)} />
+              <span className="flbl">Recurring value</span>
+            </label>
+            <label className="field chk">
+              <input type="checkbox" checked={f.in_plan} onChange={e => upd('in_plan', e.target.checked)} />
+              <span className="flbl">In selected plan</span>
+            </label>
+          </div>
+
+          <div className="fsec">Tracking KPI <span className="fsec-note">the metric this initiative moves · optional</span></div>
+          <div className="fgrid">
+            <label className="field span2">
+              <span className="flbl">Metric</span>
+              <div className="finput"><input value={f.kpi_label} onChange={e => upd('kpi_label', e.target.value)} placeholder="e.g. Repeat rate, AOV, WA conversion" /></div>
+            </label>
+            <label className="field">
+              <span className="flbl">Baseline</span>
+              <div className="finput"><input type="number" className="mono" value={f.kpi_baseline === '' ? '' : f.kpi_baseline} onChange={e => upd('kpi_baseline', Number.isNaN(e.target.valueAsNumber) ? '' : e.target.valueAsNumber)} /></div>
+            </label>
+            <label className="field">
+              <span className="flbl">Target</span>
+              <div className="finput"><input type="number" className="mono" value={f.kpi_target === '' ? '' : f.kpi_target} onChange={e => upd('kpi_target', Number.isNaN(e.target.valueAsNumber) ? '' : e.target.valueAsNumber)} /></div>
+            </label>
+            <label className="field">
+              <span className="flbl">Unit</span>
+              <div className="finput"><input value={f.kpi_unit} onChange={e => upd('kpi_unit', e.target.value)} placeholder="% · Rp · orders" /></div>
+            </label>
+            <label className="field chk">
+              <input type="checkbox" checked={f.kpi_leading} onChange={e => upd('kpi_leading', e.target.checked)} />
+              <span className="flbl">Leading indicator (watch the input, not just the outcome)</span>
+            </label>
+          </div>
+
+          <div className="fsec">Playbook <span className="fsec-note">so anyone can follow · shows in the drawer</span></div>
+          <div className="fgrid">
+            <label className="field span2">
+              <span className="flbl">How it works</span>
+              <textarea className="ftext" rows={2} value={f.how_it_works} onChange={e => upd('how_it_works', e.target.value)} placeholder="The mechanism in a sentence" />
+            </label>
+            <label className="field span2">
+              <span className="flbl">How to execute · one step per line</span>
+              <textarea className="ftext" rows={4} value={f.steps} onChange={e => upd('steps', e.target.value)} placeholder={"Step 1\nStep 2\nStep 3"} />
+            </label>
+            <label className="field span2">
+              <span className="flbl">Done when</span>
+              <textarea className="ftext" rows={2} value={f.done_when} onChange={e => upd('done_when', e.target.value)} placeholder="The definition of done" />
+            </label>
+            <label className="field span2">
+              <span className="flbl">Depends on · initiative IDs, comma-separated</span>
+              <div className="finput"><input className="mono" value={f.depends_on} onChange={e => upd('depends_on', e.target.value)} placeholder="e.g. G1, G6, F6" /></div>
+            </label>
+          </div>
+        </div>
+        <div className="modal-f">
+          <button className="btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn-accent" disabled={!valid} onClick={submit}>
+            {mode === 'new' ? 'Add & score' : 'Save changes'}
+          </button>
+        </div>
+      </div>
+    </>
   );
 }

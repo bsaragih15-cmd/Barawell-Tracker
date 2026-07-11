@@ -1,0 +1,136 @@
+<!-- @dsCard group="Dara Web" viewport="470x920" subtitle="Weight-first navigator: lands on the Berat funnel (landing → kuis → rencana → bayar → portal)" name="Dara web — core screens" -->
+<!-- @startingPoint section="Screens" subtitle="Weight-first: Berat funnel is the front door; Kulit/Rambut/Mental alongside" viewport="470x920" -->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dara — UI kit</title>
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+<script src="../../image-slot.js"></script>
+<script src="../../ds-loader.js"></script>
+</head>
+<body style="margin:0;background:var(--dara-oat)">
+<div id="root"></div>
+<script type="text/babel" data-presets="react-classic">
+window.__dsReady.then((NS) => {
+const { LandingBeratBadan, LandingKulit, LandingRambut, LandingMental, QuizFlow, QuizMental, QuizDerm, PlanReveal, PlanRevealDerm, PlanRevealMental, CheckoutScreen, PortalDashboard, PortalSkinHair, PortalMental, StatusStates, TriageFlow, InjectionGuide, ArticlePage } = NS;
+
+/* Each category is a linear flow. The navigator = a category row + the
+   selected category's step rail. Shared screens (the quiz) inherit the
+   category you entered from. */
+const FLOWS = {
+  bb:      { label: "Berat",   steps: [["lp-bb", "Landing"], ["quiz", "Kuis"], ["plan", "Rencana"], ["checkout", "Bayar"], ["portal", "Portal"]] },
+  kulit:   { label: "Kulit",   steps: [["lp-kulit", "Landing"], ["quiz-kulit", "Kuis"], ["plan-kulit", "Rencana"], ["checkout-kulit", "Bayar"], ["portal-kulit", "Portal"]] },
+  rambut:  { label: "Rambut",  steps: [["lp-rambut", "Landing"], ["quiz-rambut", "Kuis"], ["plan-rambut", "Rencana"], ["checkout-rambut", "Bayar"], ["portal-rambut", "Portal"]] },
+  mental:  { label: "Mental",  steps: [["lp-mental", "Landing"], ["quiz-mental", "Kuis"], ["plan-mental", "Rencana"], ["checkout-mental", "Bayar"], ["portal-mental", "Portal"]] },
+  status:  { label: "Keadaan", steps: [["status", "Status"]] },
+  artikel: { label: "Artikel", steps: [["artikel", "Artikel"]] },
+};
+const MAIN_CATS = ["bb", "kulit", "rambut", "mental"];
+const UTIL_CATS = ["status", "artikel"];
+/* screen → category (for keeping the right flow highlighted). "quiz" is
+   shared and intentionally omitted so it keeps the current category. */
+const SCREEN_CAT = {
+  "lp-bb": "bb", plan: "bb", checkout: "bb", portal: "bb", triage: "bb", guide: "bb",
+  "lp-kulit": "kulit", "quiz-kulit": "kulit", "plan-kulit": "kulit", "checkout-kulit": "kulit", "portal-kulit": "kulit",
+  "lp-rambut": "rambut", "quiz-rambut": "rambut", "plan-rambut": "rambut", "checkout-rambut": "rambut", "portal-rambut": "rambut",
+  "lp-mental": "mental", "quiz-mental": "mental", "plan-mental": "mental", "checkout-mental": "mental", "portal-mental": "mental",
+  status: "status", artikel: "artikel",
+};
+
+function App() {
+  const [screen, setScreen] = React.useState("lp-bb");
+  const [cat, setCat] = React.useState("bb");
+  const nav = (id) => { setScreen(id); if (SCREEN_CAT[id]) setCat(SCREEN_CAT[id]); };
+  const selectCat = (c) => nav(FLOWS[c].steps[0][0]);
+  const startQuiz = (c) => { setCat(c); setScreen("quiz"); };
+
+  const catChip = (c) => (
+    <button
+      key={c}
+      onClick={() => selectCat(c)}
+      style={{
+        fontFamily: "var(--font-ui)", fontSize: 13, fontWeight: 600, padding: "8px 14px", minHeight: 34,
+        border: "none", cursor: "pointer", borderRadius: "var(--radius-pill)",
+        background: cat === c ? "var(--dara-ink)" : "transparent",
+        color: cat === c ? "#fff" : "var(--text-secondary)",
+        transition: "background var(--dur-fast) var(--ease-out)",
+      }}
+    >
+      {FLOWS[c].label}
+    </button>
+  );
+
+  const steps = FLOWS[cat].steps;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "18px 12px 32px", fontFamily: "var(--font-ui)" }}>
+      {/* Navigator: category row + contextual flow rail */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 0, background: "var(--surface-page)", border: "var(--border-hairline)", borderRadius: 18, overflow: "hidden", maxWidth: 560 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", justifyContent: "center", padding: "8px 10px" }}>
+          {MAIN_CATS.map(catChip)}
+          <span aria-hidden="true" style={{ width: 1, height: 22, background: "var(--dara-line)", margin: "0 4px" }} />
+          {UTIL_CATS.map(catChip)}
+        </div>
+        {steps.length > 1 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", justifyContent: "center", padding: "9px 12px", borderTop: "var(--border-hairline)", background: "var(--surface-card-tint)" }}>
+            {steps.map(([id, label], i) => (
+              <React.Fragment key={id + i}>
+                {i > 0 && <span aria-hidden="true" style={{ color: "var(--text-meta)", fontSize: 12 }}>→</span>}
+                <button
+                  onClick={() => nav(id)}
+                  style={{
+                    fontFamily: "var(--font-ui)", fontSize: 12.5, fontWeight: 600, padding: "5px 11px", minHeight: 30,
+                    border: "none", cursor: "pointer", borderRadius: "var(--radius-pill)",
+                    background: screen === id ? "var(--dara-terracotta-tint)" : "transparent",
+                    color: screen === id ? "var(--dara-terracotta)" : "var(--text-meta)",
+                    transition: "background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out)",
+                  }}
+                >
+                  {label}
+                </button>
+              </React.Fragment>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={{ width: 390, height: 780, overflowY: "auto", background: "var(--surface-page)", border: "var(--border-hairline)", borderRadius: 24, boxShadow: "var(--shadow-raised)" }}>
+        {screen === "lp-bb" && <LandingBeratBadan onStartQuiz={() => nav("quiz")} />}
+        {screen === "lp-kulit" && <LandingKulit onStartQuiz={() => nav("quiz-kulit")} />}
+        {screen === "quiz-kulit" && <QuizDerm category="kulit" onDone={() => nav("plan-kulit")} />}
+        {screen === "plan-kulit" && <PlanRevealDerm category="kulit" onCheckout={() => nav("checkout-kulit")} />}
+        {screen === "checkout-kulit" && <CheckoutScreen category="kulit" onPaid={() => nav("portal-kulit")} />}
+        {screen === "lp-rambut" && <LandingRambut onStartQuiz={() => nav("quiz-rambut")} />}
+        {screen === "quiz-rambut" && <QuizDerm category="rambut" onDone={() => nav("plan-rambut")} />}
+        {screen === "plan-rambut" && <PlanRevealDerm category="rambut" onCheckout={() => nav("checkout-rambut")} />}
+        {screen === "checkout-rambut" && <CheckoutScreen category="rambut" onPaid={() => nav("portal-rambut")} />}
+        {screen === "lp-mental" && <LandingMental onStartQuiz={() => nav("quiz-mental")} />}
+        {screen === "quiz" && <QuizFlow onDone={() => nav("plan")} />}
+        {screen === "quiz-mental" && <QuizMental onDone={() => nav("plan-mental")} />}
+        {screen === "plan-mental" && <PlanRevealMental onCheckout={() => nav("checkout-mental")} />}
+        {screen === "checkout-mental" && <CheckoutScreen category="mental" onPaid={() => nav("portal-mental")} />}
+        {screen === "plan" && <PlanReveal onCheckout={() => nav("checkout")} />}
+        {screen === "checkout" && <CheckoutScreen category="bb" onPaid={() => nav("portal")} />}
+        {screen === "portal" && <PortalDashboard onTriage={() => nav("triage")} onInjectionGuide={() => nav("guide")} />}
+        {screen === "portal-kulit" && <PortalSkinHair category="kulit" onExplore={() => selectCat("bb")} />}
+        {screen === "portal-rambut" && <PortalSkinHair category="rambut" onExplore={() => selectCat("bb")} />}
+        {screen === "portal-mental" && <PortalMental />}
+        {screen === "status" && <StatusStates />}
+        {screen === "triage" && <TriageFlow onBack={() => nav("portal")} />}
+        {screen === "guide" && <InjectionGuide onBack={() => nav("portal")} />}
+        {screen === "artikel" && <ArticlePage onStartQuiz={() => startQuiz("bb")} />}
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+});
+</script>
+</body>
+</html>

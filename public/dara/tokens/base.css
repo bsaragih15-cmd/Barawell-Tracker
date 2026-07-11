@@ -1,0 +1,59 @@
+/* Dara base resets — the only global element rules. */
+body {
+  margin: 0;
+  background: var(--surface-page);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+a {
+  color: var(--dara-terracotta);
+  text-decoration: underline;
+  text-decoration-color: rgba(196, 85, 59, 0.35);
+  text-underline-offset: 2px;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+a:hover { color: var(--dara-terracotta-deep); text-decoration-color: currentColor; }
+:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); border-radius: 4px; }
+::selection { background: var(--dara-blush); }
+
+/* Motion layer — premium feel inside the 150–250ms ease-out language.
+   Scroll-reveal: sections rise softly as they enter the scrollport
+   (progressive enhancement; no-ops where view() is unsupported). */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    section {
+      animation: dara-rise 1 both;
+      animation-timeline: view();
+      animation-range: entry 5% entry 38%;
+    }
+  }
+}
+@keyframes dara-rise {
+  from { opacity: 0.01; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+/* Quiz-step entry (applied with key={step} so each question slides in) */
+@keyframes dara-stepin {
+  from { opacity: 0; transform: translateX(14px); }
+  to { opacity: 1; transform: none; }
+}
+/* Gentle card lift on hover */
+.dara-lift { transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out); }
+@media (hover: hover) {
+  .dara-lift:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(33, 26, 20, 0.07); }
+}
+
+/* Respect reduced-motion system-wide: neutralize transitions & looping
+   animations (idle bobs, spins, curve draws) while preserving layout. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

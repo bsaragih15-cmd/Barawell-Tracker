@@ -1,0 +1,47 @@
+<!-- @dsCard group="Dara Web" viewport="1200x820" subtitle="Desktop: home + LP Berat (toggle) — 2-col heroes, tier & med-choice modules" name="Dara web — desktop" -->
+<!-- @startingPoint section="Screens" subtitle="Desktop pages (max-width 1100): home + landing Berat" viewport="1200x820" -->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dara — desktop</title>
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+<script src="../../image-slot.js"></script>
+<script src="../../ds-loader.js"></script>
+</head>
+<body style="margin:0">
+<div id="root"></div>
+<script type="text/babel" data-presets="react-classic">
+window.__dsReady.then((NS) => {
+const { HomeDesktop, LandingBeratDesktop } = NS;
+function App() {
+  const [page, setPage] = React.useState("home");
+  const chip = (id, label) => (
+    <button
+      onClick={() => setPage(id)}
+      style={{ fontFamily: "var(--font-ui)", fontSize: 13, fontWeight: 600, padding: "7px 14px", minHeight: 32, border: "none", cursor: "pointer", borderRadius: "var(--radius-pill)", background: page === id ? "var(--dara-ink)" : "transparent", color: page === id ? "#fff" : "var(--text-secondary)" }}
+    >
+      {label}
+    </button>
+  );
+  return (
+    <div>
+      <div style={{ position: "fixed", top: 14, right: 14, zIndex: 50, display: "flex", gap: 4, background: "var(--surface-page)", border: "var(--border-hairline)", borderRadius: "var(--radius-pill)", padding: 4, boxShadow: "var(--shadow-raised)" }}>
+        {chip("home", "Beranda")}
+        {chip("lp-bb", "LP Berat")}
+      </div>
+      {page === "home" && <HomeDesktop onStartQuiz={() => setPage("lp-bb")} onCategory={(id) => setPage(id === "bb" ? "lp-bb" : "home")} />}
+      {page === "lp-bb" && <LandingBeratDesktop onStartQuiz={() => {}} />}
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+});
+</script>
+</body>
+</html>

@@ -32,10 +32,6 @@ Effort: S (<2h) · M (half-day) · L (1–2 days).
 - Rewire the Trajectory view to read the view instead of the client-side derivation.
 - **Done when:** trajectory reflects stored phasing and updates when phasing edits.
 
-### [P1·S] Add-initiative + edit-initiative forms
-- CRUD on `initiatives` (next-free-ID helper per bucket per rule 3). Inputs only — scores compute in the view.
-- **Done when:** a new initiative can be added from the UI and scores immediately.
-
 ### [P1·S] Change-log / audit table
 - `change_log(id, entity, entity_id, field, old, new, who, at)`; write from actions. Governance requirement — nothing gets silently altered.
 - **Done when:** stage/RAG/config changes append a log row; a simple log view exists.
@@ -67,6 +63,34 @@ Effort: S (<2h) · M (half-day) · L (1–2 days).
 ---
 
 ## Done
+
+### [P1·M] Initiative detail: in-app playbook, dependencies/blocked, KPI baseline — 2026-07-07
+- `0008_initiative_detail.sql`: `how_it_works`, `steps[]`, `done_when`, `depends_on[]`, `kpi_baseline`, `kpi_leading`; view derives `blocked_by[]`; `v_coverage` adds `unblocked`/`blocked`. Seeded the authored playbook + full dependency graph across all 39.
+- Drawer shows the playbook (how/steps/done-when) + clickable dependency chips + a blocked banner; mini-cards show ⛔ blocked badges; new "Reachable now · unblocked" hero tile (Rp 47.5M reachable vs Rp 134M blocked behind enablers).
+- KPI now baseline → actual → target with a true % and leading/lagging tag. Add/edit form gained Playbook + KPI-baseline fields. Closes most of backlog #1/#2/#5.
+
+### [reg] GLP-1 program cluster + adjacent levers added — 2026-07-07
+- `0007_seed_glp1_and_more.sql`: F4 GLP-1 program · F5 subscription/titration · F6 screening · G5 cold-chain (enabler) · G6 regulatory (enabler) · B5 companion bundle · C6 payments · A6 predictive churn. Register 31→39; coverage 54%→63%.
+
+### [P1·M] Card pass: status note, next-action, KPI, age-in-state, activity log — 2026-07-07
+- `0006_card_fields_and_changelog.sql`: card fields (note, next_action/next_due, kpi_label/target/actual/unit, state_since) + `change_log` table; view recreated so fields flow through.
+- Mini-card now shows age-in-state, the status note, next action/milestone, and a milestone progress bar.
+- Drawer: inline "What's next", status note, KPI actual-vs-target with progress (blur-to-save via `saveCardMeta`); an **Activity** feed of the last changes; KPI setup (metric/target/unit) in the add/edit form.
+- Every mutation appends to `change_log` — closes the P1 "Change-log / audit table" item (per-card feed; global view + `who` deferred to Auth).
+
+### [P1·M] Adherence pass: single-view board, review filter, stale flags, milestone CRUD, weekly Δ — 2026-07-07
+- Removed all tabs (D15): Execution board is the app. Filter chips replace views — "Needs attention" (RAG≠Green / overdue milestone / stale ≥14d) + per-owner filters.
+- Cards show stale badges and their next dated milestone (red when overdue).
+- Milestones add/delete from the drawer (with due dates) — auto-RAG now feedable everywhere.
+- `0005_weekly_snapshots.sql`: `coverage_snapshots` (1 row/ISO week) + `capture_coverage_snapshot()` upsert called on page load; hero shows Δ coverage pts vs last week. Covers most of the old "Exception-based review view" P2 item.
+
+### [P1·S] Drag-and-drop + 3-lane Execution board — 2026-07-07
+- Cards drag between the 5 Pipeline stage columns (drop = set stage, absolute).
+- New "Execution" tab: Idea (L1–L2) / Execute (L3–L4) / Done (L5) — a projection of the stage-gates (D14), drag between lanes writes the lane's canonical stage (L2/L4/L5). Lane rollups show count + risk-adj Rp/mo; cards show milestone progress + owner.
+
+### [P1·S] Add / edit / kill initiative + owners — 2026-07-07
+- `0004_owners_and_register_lifecycle.sql`: formalises the ad-hoc live `pics` table + `initiatives.owner_id` FK, adds a `status` ('Active'/'Killed') column, and rebuilds `v_initiatives_scored` (now joins `owner_name`/`owner_is_lead`) and `v_coverage` (counts `status='Active'` only, so killing a lever drops its value from the bridge).
+- UI: "+ New initiative" modal (all scoring inputs, ID auto-assigned per bucket per rule 3 — scores compute in the view, no math in the client); "Edit inputs" from the drawer reuses the same form; owner assignment (PIC chips) in the drawer + owner avatars on pipeline/board cards and a Register column; kill/restore with a "show N killed" toggle. Verified: kill A2 → coverage 54%→47%, restore → 54%.
 
 ### [P0·S] `npm run build` passes clean — 2026-07-07
 - Fixed a type error in the Register sort comparator (`(string & number)` cast collapsed to `never`, breaking `localeCompare`). Build exits 0.

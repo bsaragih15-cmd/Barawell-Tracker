@@ -1,0 +1,33 @@
+<!-- @dsCard group="Components" viewport="700x340" name="Quiz" subtitle="Option cards (radio + multi) · thin terracotta progress line" -->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+<script src="../../ds-loader.js"></script>
+</head>
+<body style="margin:0;padding:20px;box-sizing:border-box">
+<div id="root"></div>
+<script type="text/babel" data-presets="react-classic">
+window.__dsReady.then((NS) => {
+const { OptionCard, ProgressBar } = NS;
+function Demo() {
+  const [sel, setSel] = React.useState("bb");
+  return (
+    <div style={{ maxWidth: 480, display: "flex", flexDirection: "column", gap: 12 }}>
+      <ProgressBar value={0.4} />
+      <p style={{ margin: "8px 0 0", fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 550 }}>Apa yang ingin kamu capai?</p>
+      <OptionCard label="Menurunkan berat badan" description="Program dengan pendampingan dokter" selected={sel === "bb"} onSelect={() => setSel("bb")} />
+      <OptionCard label="Mulai atau ganti pil KB" selected={sel === "kb"} onSelect={() => setSel("kb")} />
+      <OptionCard multi label="Aku belum yakin, mau tanya dokter dulu" selected={sel === "tanya"} onSelect={() => setSel("tanya")} />
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<Demo />);
+});
+</script>
+</body>
+</html>

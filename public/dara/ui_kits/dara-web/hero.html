@@ -1,0 +1,37 @@
+<!-- @dsCard group="Dara Web" viewport="402x740" subtitle="Autoplay hero — blush background, floating Mounjaro pen (tirzepatide), rotating gold badge" name="Hero — animated" -->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dara — Hero animasi</title>
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+<script src="../../image-slot.js"></script>
+<script src="../../ds-loader.js"></script>
+</head>
+<body style="margin:0;background:var(--surface-page)">
+<div id="root"></div>
+<script type="text/babel" data-presets="react-classic">
+window.__dsReady.then((NS) => {
+  const { HeroAnimation, TrustBar, HomeScreen } = NS;
+  function Demo() {
+    const quiz = () => alert("→ mulai kuis");
+    return (
+      <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100vh", boxShadow: "0 0 0 1px var(--dara-line)" }}>
+        <header style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 5, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", maxWidth: 430, margin: "0 auto" }}>
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 600, color: "#3A2A20" }}>Dara</span>
+        </header>
+        <HeroAnimation onStartQuiz={quiz} />
+        <TrustBar />
+      </div>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById("root")).render(<Demo />);
+});
+</script>
+</body>
+</html>
