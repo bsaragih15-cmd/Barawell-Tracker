@@ -6,15 +6,21 @@ The contract. Every cycle I grade these six levers **R / A / G** off your Airtab
 
 ---
 
-## The target math (set your real numbers; demo shown)
+## The target math (real numbers — logged 2026-07-13)
 
-For a male at **80 kg / 22% BF** wanting **10%**, holding lean mass:
-- Lean mass = 80 × (1 − 0.22) = **62.4 kg**
-- Target weight = 62.4 ÷ (1 − 0.10) = **69.3 kg**
-- **Fat to lose ≈ 10.7 kg**
-- At **0.5 kg/wk** → ~21 weeks · at **0.7 kg/wk** → ~15 weeks
+At **76 kg / 15% BF** wanting **10%**, holding lean mass:
+- Lean mass = 76 × (1 − 0.15) = **64.6 kg**
+- Target weight = 64.6 ÷ (1 − 0.10) = **71.8 kg**
+- **Fat to lose ≈ 4.2 kg** (11.4 kg fat now → 7.2 kg)
+- At **0.4 kg/wk** → ~10–11 weeks (~late Sept) · at **0.5 kg/wk** → ~8 weeks (~mid Sept)
 
-**Honest flag:** 10% by the **October race** would need ≈0.75 kg/wk *through* your peak build — that collides with Track B (endurance needs fuel). Realistic call: ride a moderate cut to the race, then finish to 10% in the ~6 weeks after. The matrix will tell you weekly whether you're on the aggressive or the sane path.
+**Honest flag — this is the *compatible* path, not a conflict.** You only have ~4.2 kg to lose, which lands you at 10% by **mid-to-late September — before the October peak build and race.** So the plan is clean: run a gentle deficit now, hit 10% by ~mid-Sept, then eat at **maintenance** to fuel the final build and taper. The two goals stop fighting. Caveats: (1) the last 1–2 points to 10% slow down and 10% is genuinely lean; (2) keep the rate ≤0.5 kg/wk so you **lose fat, not watts** — if FTP watts drop as weight falls, you're under-fuelling. Recommended rate: **0.4 kg/wk.**
+
+### Cycling baseline (logged same day)
+- **zFTP 106 W = 1.39 W/kg @ 76 kg** (Zwift estimate — a **floor**, no maximal ≥12-min effort yet). zMAP 131 W = 1.72 W/kg.
+- ⚠️ Zwift/Polar profile was computing on ~91 kg — **fix to 76 kg** so W/kg is honest.
+- **Do a 20-min or ramp FTP test** to set real zones; re-test every 4–6 weeks.
+- Progression graded as: **FTP W/kg** (monthly) + **W/kg held at a fixed Zone-2 HR** (weekly) — flag if watts fall while weight drops.
 
 ---
 
