@@ -52,3 +52,21 @@ Milestones + manual RAG + a frontend-derived trajectory ramp are enough to run r
 **D11 · Config edited via a UI modal, not just raw SQL.**
 The `updateConfig` action existed but had no surface; assumptions (D8) change often as real data lands, so a founder-facing "Assumptions" modal now writes `config` and lets the view re-price everything. No math moved to the client — the form only writes inputs.
 *Reopens if:* config becomes multi-row/versioned (per-review snapshots), which would need a different editor.
+
+## Customer segmentation (2026-07-13)
+
+**D12 · Segmentation is the evidence layer under the retention/AOV initiatives, shipped as a "Segments" cockpit tab — not a standalone dashboard.**
+The register already carries A1–A5 (retention), B1–B4 (AOV), F2 (Baralast), E-bucket (channel). Segmentation answers "how big is each of those pools, and who exactly do we act on." Housing it in the same cockpit keeps segments → initiatives one instrument. Source: the `histori-pesanan` order-history export (4,716 customers, Jan 2025–Jul 2026).
+*Reopens if:* segmentation needs to serve consumers outside the value-capture story (e.g. a standalone ops CRM).
+
+**D13 · Segmentation model = Value tier × Lifecycle, thresholds grounded in the data.**
+Value: Whale ≥ Rp2M lifetime · Core ≥ Rp400k · Entry < Rp400k. Lifecycle (vs the measured ~46-day median 1st→2nd-order refill): Dormant >90d · At-risk 46–90d · Active-repeat ≤45d & ≥2 orders · New = 1 order ≤45d. Recency is anchored on the latest order in the dataset (deterministic), not wall-clock. The source sheet's `Baru/Repeat/Dormant` tag is inconsistent with order counts (tag "Repeat"=367 vs actual ≥2-orders=658) and is **not** trusted — segments are derived from raw recency/frequency.
+*Reopens if:* the refill cadence shifts materially, or a value distribution change makes the tier cuts produce a poor spread.
+
+**D14 · Segmentation lands as computed marts + a stable `v_*` view contract, not live views over a raw customer table.**
+Rule D2 (compute once, frontend reads computed values) still holds — but the classification is computed in the ingestion step (`scripts/ingest_segments.py`, the ETL role the backlog's n8n feed will play) and landed as small marts (`seg_summary`, `seg_matrix`, `seg_funnel`, `seg_refill`, `seg_channel_stat`, `seg_product`, `seg_action_queue`). Two constraints forced marts over live views: (a) the source is a 4.7k-row out-of-band export and this session's egress policy blocks a direct DB pipe; (b) real phone numbers must stay off the anon-readable surface. The `v_segment_*` view names are the stable contract the UI reads — swap the marts for live computation when an order feed exists and the UI never changes.
+*Reopens when:* a live orders table lands in Supabase — then redefine the `v_*` views over it and retire the marts.
+
+**D15 · Customer PII is never committed to git; the action queues store name/city but not phone.**
+`seg_*` tables hold real names — seeded by ingestion against the live project, never in a migration or seed file. The repo ships the engine (schema + views + the ingestion script), not the customer list. Action queues deliberately omit phone: the app runs on the public anon key (D3 fallback), so anything in these tables is world-readable — operators dial from the source register by name / cust_key. Queues are capped at the top ~80 per play (operators work the head of the list).
+*Reopens when:* Supabase Auth replaces the anon fallback (D3) — then phone could live in an authenticated-only table.

@@ -2,8 +2,9 @@
 
 import { useState, useTransition, useMemo } from 'react';
 import type { MouseEvent as ReactMouseEvent, ChangeEvent as ReactChangeEvent } from 'react';
-import type { ScoredRow, Coverage, Config, Stage, Milestone } from './types';
+import type { ScoredRow, Coverage, Config, Stage, Milestone, SegData } from './types';
 import { moveStage, setRag, toggleMilestone, updateConfig } from './actions';
+import Segments from './Segments';
 
 const rp = (v: number) => {
   const a = Math.abs(v); let s: string;
@@ -17,10 +18,10 @@ const QC: Record<string, string> = { 'Quick Win': 'qw', 'Big Bet': 'bb', 'Fill-i
 const STCOLOR = (n: number) => `--s${n}`;
 const RAGV: Record<string, string> = { Green: '--rag-g', Amber: '--rag-a', Red: '--rag-r' };
 
-export default function Cockpit({ rows, coverage, config, stages, milestones }:
-  { rows: ScoredRow[]; coverage: Coverage; config: Config; stages: Stage[]; milestones: Milestone[]; }) {
+export default function Cockpit({ rows, coverage, config, stages, milestones, seg: segData }:
+  { rows: ScoredRow[]; coverage: Coverage; config: Config; stages: Stage[]; milestones: Milestone[]; seg: SegData; }) {
 
-  const [view, setView] = useState<'pipe' | 'table' | 'board' | 'traj'>('pipe');
+  const [view, setView] = useState<'pipe' | 'table' | 'board' | 'traj' | 'seg'>('pipe');
   const [openId, setOpenId] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<keyof ScoredRow>('ice');
   const [sortDir, setSortDir] = useState(-1);
@@ -114,10 +115,12 @@ export default function Cockpit({ rows, coverage, config, stages, milestones }:
 
       <div className="tabs">
         <div className="tabset">
-          {([['pipe', 'Pipeline'], ['table', 'Register'], ['board', 'Prioritize'], ['traj', 'Trajectory']] as const).map(([v, l]) =>
+          {([['pipe', 'Pipeline'], ['table', 'Register'], ['board', 'Prioritize'], ['traj', 'Trajectory'], ['seg', 'Segments']] as const).map(([v, l]) =>
             <button key={v} className={'tab' + (view === v ? ' on' : '')} onClick={() => setView(v)}>{l}</button>)}
         </div>
-        <div className="meta">{rows.length} initiatives</div>
+        <div className="meta">{view === 'seg'
+          ? `${(segData.summary?.customers ?? 0).toLocaleString()} customers`
+          : `${rows.length} initiatives`}</div>
       </div>
 
       {/* VIEWS */}
@@ -208,6 +211,8 @@ export default function Cockpit({ rows, coverage, config, stages, milestones }:
           <Trajectory pts={traj} target={T} />
         </div>
       )}
+
+      {view === 'seg' && <Segments seg={segData} />}
 
       {/* ASSUMPTIONS MODAL */}
       {cfgOpen && (

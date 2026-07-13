@@ -51,6 +51,15 @@ Effort: S (<2h) · M (half-day) · L (1–2 days).
 ### [P2·L] n8n → Supabase ingestion
 - Pipe live sales/ad performance into an `actuals` table; auto-refresh `config.current_rev` and flag assumptions that drift from actuals. This is the "shared backend" payoff that justified going custom (D1).
 - **Done when:** current_rev updates from a scheduled n8n run; a drift indicator appears when an assumption diverges from actuals.
+- **Note (2026-07-13):** the segmentation ingestion (`scripts/ingest_segments.py`, D14) is the first instance of this ETL role. When n8n lands, it should (a) land a real `orders` table, (b) let the `v_segment_*` views compute live over it (retiring the marts), and (c) refresh `config` assumptions from the same feed — repeat_share and AOV are now measurable (14.0% repeat, Rp296k avg AOV), so D8's placeholders can be replaced.
+
+### [P1·M] Wire segmentation into the initiative model
+- The Segments tab (D12–D15) now sizes the pools the retention/AOV initiatives act on: 4,058 one-and-done, 2,459 dormant, 607 cross-sell targets, ~46d refill window. Feed these into the initiatives' `base_rp`/`coverage`/`uplift` inputs so A1–A5 / B1–B4 / F2 are calibrated to real segment sizes instead of D8 placeholders. Consider an `initiative ↔ segment/queue` link so advancing a play shows the exact target list.
+- **Done when:** at least the retention (A) and AOV (B) initiatives read segment-derived pool sizes, and a drawer can surface the queue a given initiative works.
+
+### [P2·M] Segmentation depth — refresh cadence, refill precision, phone behind auth
+- Auto-refresh the marts on the ingestion schedule (currently a one-off load). Store the exact median refill per cohort rather than the hard-coded ~46d UI label. Once Auth lands (D3/P2), move phone into an authenticated-only table so action queues are directly dial-able (D15).
+- **Done when:** marts refresh on schedule and the refill window is data-driven per view.
 
 ### [P2·M] Supabase Auth (retire service-role shortcut)
 - Add Supabase Auth (magic link or Google), switch server client to anon key + user session, lean on the RLS policies already in the migration.
@@ -76,3 +85,8 @@ Effort: S (<2h) · M (half-day) · L (1–2 days).
 
 ### [P1·M] Config-editing UI — 2026-07-07
 - "Assumptions" modal (topbar) edits all seven `config` fields via the existing `updateConfig` action; Rp fields entered in millions, shares/margin/haircut as %. Save re-prices the whole portfolio through the view. Deferred: `haircut` is stored but not yet consumed by a view (the In-Plan overlap rollup, D6, isn't built).
+
+### [P1·L] Customer segmentation cockpit tab — 2026-07-13
+- `0004_segments.sql`: segmentation marts + the `v_segment_*` view contract (D12–D15). `scripts/ingest_segments.py` computes the model from the `histori-pesanan` export (4,716 customers) and lands the marts; no PII committed.
+- New **Segments** tab (`app/Segments.tsx`): headline tiles, the Value×Lifecycle matrix (12 cells, click for detail), the retention funnel (4,716→658→237→53), the refill cohort (median ~46d), channel mix (website already 51% of orders; Tokopedia only 17%), product/cross-sell headroom (Baralast attach 1.3% → 607 targets), and five ranked, copy-exportable action queues (refill-due, win-back, cross-sell, AOV-expand, channel-migrate).
+- Key findings baked in: **86% one-and-done** (repeat rate 14.0%, but repeaters = 33% of revenue); the leak is the second order; owned channel is already the largest (reframes the Tokopedia risk as bounded). Build passes; component SSR-verified against live data. Local browser E2E not possible (egress policy blocks the dev server from Supabase); verified via the MCP-backed views + Vercel.
