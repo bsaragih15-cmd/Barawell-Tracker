@@ -15,10 +15,6 @@ Effort: S (<2h) · M (half-day) · L (1–2 days).
 - Set `.env` from `.env.example`; `npm install && npm run dev`; confirm the cockpit renders and the coverage bridge is non-empty.
 - **Done when:** local app loads with all 31 initiatives, gate-advance moves the bridge, milestone toggles persist.
 
-### [P0·S] `npm run build` passes clean
-- The code is written for Next 14 but was authored offline (no install). Resolve any type/version pins.
-- **Done when:** `npm run build` exits 0 with no type errors.
-
 ### [P0·S] Deploy to Vercel
 - `vercel` link, add both env vars, `vercel --prod`.
 - **Done when:** prod URL loads and mutations persist to Supabase.
@@ -40,6 +36,21 @@ Effort: S (<2h) · M (half-day) · L (1–2 days).
 - `change_log(id, entity, entity_id, field, old, new, who, at)`; write from actions. Governance requirement — nothing gets silently altered.
 - **Done when:** stage/RAG/config changes append a log row; a simple log view exists.
 
+### [P1·M] Protect Growth OS with Supabase Auth
+- Add login and role-based customer access before enabling `BARAWELL_SHOW_CUSTOMER_NAMES=true`.
+- Separate founder, sales lead, and sales-agent permissions.
+- **Done when:** customer identity and CRM mutations require a signed-in, authorized user.
+
+### [P1·M] Schedule Growth OS ingestion
+- Run `scripts/ingest_growth_os.py` from n8n, GitHub Actions, or a protected operator job after every workbook refresh.
+- Normalize channel aliases and alert when source counts drift materially.
+- **Done when:** aggregate history and Pulse refresh without manual SQL.
+
+### [P1·M] Approved CRM message library and clinical governance
+- Store versioned, approved templates by play and channel.
+- Add exclusions for unresolved complaints, clinical escalation, and do-not-contact.
+- **Done when:** sales can only send approved copy and all sensitive cases route to humans.
+
 ---
 
 ## P2 — depth
@@ -48,20 +59,25 @@ Effort: S (<2h) · M (half-day) · L (1–2 days).
 - Capture value lost when an initiative is killed or de-scoped between stages. A `status` field (`Active/Killed/Descoped`) + a leakage rollup in `v_coverage`.
 - **Done when:** the coverage view shows gross pipeline, leakage, and net.
 
-### [P2·L] n8n → Supabase ingestion
-- Pipe live sales/ad performance into an `actuals` table; auto-refresh `config.current_rev` and flag assumptions that drift from actuals. This is the "shared backend" payoff that justified going custom (D1).
-- **Done when:** current_rev updates from a scheduled n8n run; a drift indicator appears when an assumption diverges from actuals.
+### [P2·L] Calibrate propensity and uplift models
+- Use CRM activity, experiment membership, and conversion outcomes to estimate calibrated response and incremental uplift.
+- Validate out of sample and retain deterministic fallbacks.
+- **Done when:** heuristic-v1 is replaced only where a model demonstrably improves ranking.
 
-### [P2·M] Supabase Auth (retire service-role shortcut)
-- Add Supabase Auth (magic link or Google), switch server client to anon key + user session, lean on the RLS policies already in the migration.
-- **Done when:** the app requires login and the service-role key is gone from request paths.
+### [P2·M] Campaign and order attribution
+- Automate conversion linkage to assignments within a governed window, with refund and margin adjustments.
+- **Done when:** play readouts show attributed and incremental revenue/GP without manual entry.
+
+### [P2·M] Customer-level refill intervals
+- Add a private customer mart with personal reorder intervals and product-specific fallback medians.
+- **Done when:** refill timing moves from the global cohort window to customer/product evidence.
 
 ### [P2·S] Exception-based review view
 - A "review mode" filtered to at-risk only (RAG ≠ Green, or coverage-critical initiatives), matching KEY's exception-based reporting.
 - **Done when:** one click shows only what needs attention this week.
 
 ### [P2·S] Export to BCG-style status slide
-- Generate a one-slide PNG/PPTX snapshot: coverage bridge + top movers + RAG summary, "so-what" title. (Owner uses PptxGenJS.)
+- Generate a one-slide PNG/PPTX snapshot: coverage bridge + top movers + RAG summary, "so-what" title.
 - **Done when:** a button produces a client-ready status slide.
 
 ---
@@ -69,10 +85,20 @@ Effort: S (<2h) · M (half-day) · L (1–2 days).
 ## Done
 
 ### [P0·S] `npm run build` passes clean — 2026-07-07
-- Fixed a type error in the Register sort comparator (`(string & number)` cast collapsed to `never`, breaking `localeCompare`). Build exits 0.
+- Fixed a type error in the Register sort comparator. Build exits 0.
 
 ### [P1·M] Milestone-driven auto-RAG — 2026-07-07
-- `0002_auto_rag.sql`: added `initiatives.rag_override`; `v_initiatives_scored` now computes `rag_auto` (Red = any overdue open milestone; Amber = <50% progress & stage ≥ L4; Green = has milestones, else null) and `rag_effective` (`rag_override ? rag : rag_auto`). Frontend reads `rag_effective`; the drawer shows auto-vs-manual and a "use auto" reset; overdue milestones render red. Rule D2 honoured — logic is in SQL, not app code.
+- `0002_auto_rag.sql`: milestone-derived RAG in SQL with manual override.
 
 ### [P1·M] Config-editing UI — 2026-07-07
-- "Assumptions" modal (topbar) edits all seven `config` fields via the existing `updateConfig` action; Rp fields entered in millions, shares/margin/haircut as %. Save re-prices the whole portfolio through the view. Deferred: `haircut` is stored but not yet consumed by a view (the In-Plan overlap rollup, D6, isn't built).
+- Founder-facing assumptions modal writes inputs; SQL views re-price the portfolio.
+
+### [P1·L] Customer segmentation evidence layer — 2026-07-13
+- Value × Lifecycle marts, retention funnel, refill cohort, channel/product mix, and five ranked customer action queues are live.
+
+### [P1·L] Integrated Growth OS — 2026-07-14
+- Historical monthly/cohort/channel/product/segment marts and movement history.
+- Automatic Pulse insights, expected ranges, channel/product drivers, and target scorecard.
+- CRM assignments, activities, outcomes, deterministic propensity scoring, and play effectiveness.
+- Treatment/holdout experiments with treatment-only task creation.
+- Aggregate XLSX ingestion; phone numbers never leave the ingestion process.

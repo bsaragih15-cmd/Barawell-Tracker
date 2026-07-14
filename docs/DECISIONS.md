@@ -52,3 +52,25 @@ Milestones + manual RAG + a frontend-derived trajectory ramp are enough to run r
 **D11 · Config edited via a UI modal, not just raw SQL.**
 The `updateConfig` action existed but had no surface; assumptions (D8) change often as real data lands, so a founder-facing "Assumptions" modal now writes `config` and lets the view re-price everything. No math moved to the client — the form only writes inputs.
 *Reopens if:* config becomes multi-row/versioned (per-review snapshots), which would need a different editor.
+
+## Growth OS
+
+**D12 · Historical truth is stored as aggregate monthly, cohort, channel, product, segment, and movement marts.**
+The source workbook is operational input, not the dashboard model. Complete months are used for period comparisons; the latest partial month remains visible but is explicitly flagged. Aggregate marts contain no phone numbers or customer-level PII.
+*Reopens if:* an order-level warehouse with governed access replaces the workbook ingestion.
+
+**D13 · Automatic insights are deterministic facts first, narrative second.**
+SQL calculates period changes, target gaps, concentration, expected ranges, and drivers. The interface renders those evidence packages; an LLM may later summarize them but must not invent metric conclusions from raw rows.
+*Reopens if:* never for the factual layer. Narrative generation can change without moving calculations out of SQL.
+
+**D14 · CRM is a closed measurement loop, not a downloadable lead list.**
+Eligibility → ranked action → assignment → activity → outcome → conversion → experiment readout lives in Supabase. Every sales play must eventually be judged on incremental gross profit, not attributed revenue alone.
+*Reopens if:* the company adopts a CRM that becomes the authoritative execution and experiment ledger.
+
+**D15 · Propensity scores are labelled `heuristic-v1` until outcomes calibrate them.**
+Current reorder, churn, cross-sell, and response estimates are transparent deterministic heuristics. They prioritize work but are not claimed as machine-learning predictions. Logged outcomes and holdouts will support later calibration and uplift modelling.
+*Reopens when:* there is enough clean treatment/outcome history to validate a trained model out of sample.
+
+**D16 · Customer names are masked by default in the web application.**
+The Growth OS is useful without exposing customer identity on a public deployment. Full names appear only when `BARAWELL_SHOW_CUSTOMER_NAMES=true` and the deployment is protected as an internal surface. Phone numbers are never returned by Growth OS views.
+*Reopens when:* Supabase Auth and role-based customer access are live.
