@@ -22,7 +22,18 @@ const OUTCOMES = new Set([
 
 export type ActionResult = { ok: boolean; message: string };
 
+const requireServiceRole = (): ActionResult | null =>
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+    ? null
+    : {
+        ok: false,
+        message: 'This deployment is a read-only preview. Add SUPABASE_SERVICE_ROLE_KEY to the protected internal Vercel environment to enable CRM writes.',
+      };
+
 export async function refreshGrowthInsights(): Promise<ActionResult> {
+  const blocked = requireServiceRole();
+  if (blocked) return blocked;
+
   const sb = supabaseAdmin();
   const { data: summary, error: summaryError } = await sb
     .from('v_segment_summary')
@@ -44,6 +55,8 @@ export async function materializeAssignments(input: {
   limit: number;
   assignedTo?: string;
 }): Promise<ActionResult> {
+  const blocked = requireServiceRole();
+  if (blocked) return blocked;
   if (!PLAY_CODES.has(input.playCode)) return { ok: false, message: 'Unknown sales play.' };
   const limit = Math.max(1, Math.min(80, Math.round(input.limit || 20)));
   const assignedTo = input.assignedTo?.trim().slice(0, 120) || null;
@@ -70,6 +83,8 @@ export async function logCrmActivity(input: {
   notes?: string;
   nextFollowUpAt?: string;
 }): Promise<ActionResult> {
+  const blocked = requireServiceRole();
+  if (blocked) return blocked;
   if (!input.customerKey.trim()) return { ok: false, message: 'Customer is required.' };
   if (!OUTCOMES.has(input.outcome)) return { ok: false, message: 'Unknown outcome.' };
 
@@ -111,6 +126,9 @@ export async function createExperiment(input: {
   sampleSize: number;
   owner?: string;
 }): Promise<ActionResult> {
+  const blocked = requireServiceRole();
+  if (blocked) return blocked;
+
   const code = input.code.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-').slice(0, 80);
   if (!code) return { ok: false, message: 'Experiment code is required.' };
   if (!PLAY_CODES.has(input.playCode)) return { ok: false, message: 'Unknown sales play.' };
@@ -173,8 +191,13 @@ export async function createExperiment(input: {
     const existing = new Set(((openAssignments ?? []) as { customer_key: string }[]).map(row => row.customer_key));
 
     type QueueRow = {
-      customer_key: string; customer_name: string; city: string | null; play_code: string;
-      priority_score: number | string; expected_incremental_value: number | string; reason: string;
+      customer_key: string;
+      customer_name: string;
+      city: string | null;
+      play_code: string;
+      priority_score: number | string;
+      expected_incremental_value: number | string;
+      reason: string;
     };
     const assignments = ((queueRows ?? []) as QueueRow[])
       .filter((row: QueueRow) => !existing.has(row.customer_key))
