@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import Cockpit from './Cockpit';
 import type { ScoredRow, Coverage, Config, Stage, Milestone } from './types';
@@ -27,12 +28,33 @@ export default async function Page() {
   }
 
   return (
-    <Cockpit
-      rows={(rows.data ?? []) as ScoredRow[]}
-      coverage={cov.data as Coverage}
-      config={cfg.data as Config}
-      stages={(stages.data ?? []) as Stage[]}
-      milestones={(miles.data ?? []) as Milestone[]}
-    />
+    <>
+      <div className="wrap" style={{ paddingBottom: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <Link
+            href="/growth"
+            style={{
+              fontSize: 11.5,
+              fontWeight: 600,
+              color: 'var(--accent)',
+              textDecoration: 'none',
+              border: '1px solid #CDE7DD',
+              background: 'var(--accent-soft)',
+              borderRadius: 8,
+              padding: '7px 12px',
+            }}
+          >
+            Open Growth OS →
+          </Link>
+        </div>
+      </div>
+      <Cockpit
+        rows={(rows.data ?? []) as ScoredRow[]}
+        coverage={cov.data as Coverage}
+        config={cfg.data as Config}
+        stages={(stages.data ?? []) as Stage[]}
+        milestones={(miles.data ?? []) as Milestone[]}
+      />
+    </>
   );
 }
