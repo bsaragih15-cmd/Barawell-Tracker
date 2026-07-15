@@ -3,8 +3,8 @@ import type { ReactNode } from 'react';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Barawell · Value-Capture Pipeline',
-  description: 'Initiative portfolio, stage-gates, and coverage-to-target.',
+  title: 'Barawell · Founder Command Center',
+  description: 'Executive command dashboard for weekly portfolio decisions and value capture.',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
